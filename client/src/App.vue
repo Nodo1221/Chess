@@ -3,12 +3,10 @@ import { Input } from '@/components/ui/input'
 </script>
 
 <template>
-    <h1>You did it!</h1>
-    <p>
-        Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
-        documentation
-    </p>
-    <Input type="email" placeholder="Email" />
+    <h1 class="mb-4 mt-4 text-4xl font-bold tracking-tight text-center text-heading">🐴 Chess 🐴</h1>
+    <p class="text-lg text-center">powered by Java</p>
+
+    <p class="text-[380px] text-center">🐎</p>
 </template>
 
 <style scoped></style>
