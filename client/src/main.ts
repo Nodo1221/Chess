@@ -1,7 +1,7 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 
-import './globals.css'
+import './globals.css';
 
 import App from './App.vue';
 import router from './router';
