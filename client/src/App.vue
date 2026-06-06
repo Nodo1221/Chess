@@ -13,17 +13,24 @@ onMounted(async () => {
         matchmakingStore.connect();
     }
 });
+
+// Connect automatically when logging in (fixes Electron fresh start)
+watch(() => authStore.isAuthenticated, (isAuth) => {
+    if (isAuth) {
+        matchmakingStore.connect();
+    }
+});
 </script>
 
 <template>
     <div class="min-h-screen font-sans bg-white text-black">
-        <header class="p-4 border-b flex justify-between items-center bg-gray-50">
+        <header class="p-4 flex justify-between items-center">
             <h1 class="text-xl font-bold cursor-pointer" @click="router.push('/')">🐴 Chess App</h1>
             
             <div class="flex gap-6 items-center">
                 <div v-if="authStore.isAuthenticated" class="flex gap-4 items-center">
-                    <span class="text-sm font-mono border px-2 py-1 bg-white">{{ authStore.nickname }}</span>
-                    <button @click="authStore.logout(); router.push('/')" class="text-xs text-red-500 hover:underline">Logout</button>
+                    <span class="text-sm font-bold">{{ authStore.nickname }}</span>
+                    <button v-if="!authStore.guestId?.startsWith('guest-')" @click="authStore.logout(); router.push('/')" class="text-xs text-red-500 hover:underline">Logout</button>
                 </div>
             </div>
         </header>

@@ -12,13 +12,15 @@ const route = useRoute();
 
 let timerInterval: number | null = null;
 
-onMounted(() => {
+onMounted(async () => {
     if (!matchmakingStore.isInGame || matchmakingStore.matchFound?.gameId !== route.params.id) {
-        router.push('/');
-        return;
+        const success = await matchmakingStore.fetchGame(route.params.id as string);
+        if (!success) {
+            router.push('/');
+            return;
+        }
     }
 
-    // Start local timer loop
     timerInterval = window.setInterval(() => {
         if (matchmakingStore.gameOver) return;
         
@@ -44,30 +46,17 @@ function formatTime(ms: number) {
 
 <template>
     <div class="p-4 flex flex-col gap-4 max-w-4xl mx-auto">
-        <div class="flex justify-between items-center border-b pb-2">
-            <button @click="matchmakingStore.resetMatch(); router.push('/')" class="text-red-500 underline text-sm">
-                Resign / Leave Game
-            </button>
-            
-            <div class="text-sm">
-                Share URL: <input type="text" readonly :value="`http://localhost:5173/game/${route.params.id}`" class="border px-1 w-64" @click="$event.target?.select()">
-            </div>
-        </div>
-
-        <div v-if="matchmakingStore.gameOver" class="bg-yellow-100 border-yellow-400 border p-4 text-center">
-            <h2 class="font-bold text-xl">Game Over!</h2>
-            <p>{{ matchmakingStore.gameOver.winner.toUpperCase() }} won by {{ matchmakingStore.gameOver.reason }}</p>
+        <div v-if="matchmakingStore.gameOver" class="text-sm">
+            <span class="font-bold">Game Over!</span> {{ matchmakingStore.gameOver.winner.toUpperCase() }} won by {{ matchmakingStore.gameOver.reason }}
         </div>
 
         <div class="flex gap-4">
-            <div class="border p-2">
+            <div>
                 <Board />
             </div>
             
-            <div v-if="matchmakingStore.matchFound" class="w-48 flex flex-col gap-4">
-                
-                <!-- Opponent Info -->
-                <div class="border p-2 bg-gray-50 flex justify-between items-center">
+            <div v-if="matchmakingStore.matchFound" class="w-48 flex flex-col gap-4 py-4">
+                <div class="flex justify-between items-center">
                     <div class="truncate font-bold">
                         {{ matchmakingStore.matchFound.whitePlayer.id === authStore.guestId ? matchmakingStore.matchFound.blackPlayer.nickname : matchmakingStore.matchFound.whitePlayer.nickname }}
                     </div>
@@ -78,8 +67,7 @@ function formatTime(ms: number) {
                 
                 <div class="flex-grow"></div>
 
-                <!-- You Info -->
-                <div class="border p-2 bg-blue-50 flex justify-between items-center">
+                <div class="flex justify-between items-center">
                     <div class="truncate font-bold">
                         {{ authStore.nickname }}
                     </div>
@@ -87,8 +75,13 @@ function formatTime(ms: number) {
                         {{ formatTime(matchmakingStore.matchFound.whitePlayer.id === authStore.guestId ? matchmakingStore.whiteTimeLeftMs : matchmakingStore.blackTimeLeftMs) }}
                     </div>
                 </div>
-
             </div>
+        </div>
+
+        <div class="pt-4">
+            <button @click="matchmakingStore.resetMatch(); router.push('/')" class="text-red-500 underline text-sm">
+                Resign / Leave Game
+            </button>
         </div>
     </div>
 </template>
