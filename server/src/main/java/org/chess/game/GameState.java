@@ -1,5 +1,8 @@
 package org.chess.game;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class GameState {
     private final String gameId;
     private final String whitePlayerId;
@@ -14,10 +17,14 @@ public class GameState {
     private boolean isGameOver = false;
     private String winner = null;
 
+    private final List<Object> moves = new ArrayList<>();
+    private final int timeControlSeconds;
+
     public GameState(String gameId, String whitePlayerId, String blackPlayerId, int timeControlSeconds) {
         this.gameId = gameId;
         this.whitePlayerId = whitePlayerId;
         this.blackPlayerId = blackPlayerId;
+        this.timeControlSeconds = timeControlSeconds;
         
         long timeMs = timeControlSeconds * 1000L;
         this.whiteTimeLeftMs = timeMs;
@@ -57,6 +64,7 @@ public class GameState {
             currentTurn = 'w';
         }
 
+        moves.add(moveData);
         lastMoveTimeMs = now;
         return true;
     }
@@ -86,6 +94,11 @@ public class GameState {
     }
 
     public String getGameId() { return gameId; }
+    public String getWhitePlayerId() { return whitePlayerId; }
+    public String getBlackPlayerId() { return blackPlayerId; }
+    public int getTimeControlSeconds() { return timeControlSeconds; }
+    public List<Object> getMoves() { return moves; }
+    
     public long getWhiteTimeLeftMs() { 
         if (isGameOver || currentTurn != 'w') return whiteTimeLeftMs;
         return Math.max(0, whiteTimeLeftMs - (System.currentTimeMillis() - lastMoveTimeMs));

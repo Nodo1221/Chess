@@ -22,6 +22,10 @@ public class GameService {
         activeGames.put(gameId, game);
     }
 
+    public GameState getGame(String gameId) {
+        return activeGames.get(gameId);
+    }
+
     public void processMove(String gameId, String playerId, Object moveData) {
         GameState game = activeGames.get(gameId);
         if (game == null) return;
