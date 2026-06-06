@@ -35,9 +35,15 @@ public class MatchmakingService {
             Player p2 = queue.poll();
             if (p1 != null && p2 != null) {
                 String gameId = UUID.randomUUID().toString();
-                MatchFoundResponse match = new MatchFoundResponse(gameId, p1, p2);
                 
-                // Notify both players. In a real app, you might use private /user/queue/match
+                // Randomly assign white and black
+                MatchFoundResponse match;
+                if (Math.random() > 0.5) {
+                    match = new MatchFoundResponse(gameId, p1, p2);
+                } else {
+                    match = new MatchFoundResponse(gameId, p2, p1);
+                }
+                
                 messagingTemplate.convertAndSend(topic, match);
             }
         }
@@ -45,5 +51,5 @@ public class MatchmakingService {
 
     public record Player(String id, String nickname) {}
 
-    public record MatchFoundResponse(String gameId, Player player1, Player player2) {}
+    public record MatchFoundResponse(String gameId, Player whitePlayer, Player blackPlayer) {}
 }

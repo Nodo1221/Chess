@@ -9,53 +9,47 @@ const authStore = useAuthStore();
 const matchmakingStore = useMatchmakingStore();
 
 onMounted(async () => {
-    if (!authStore.isAuthenticated) {
-        await authStore.loginAsGuest();
+    try {
+        if (!authStore.isAuthenticated) {
+            await authStore.loginAsGuest();
+        }
+        matchmakingStore.connect();
+    } catch (e) {
+        console.error('App initialization failed', e);
     }
-    matchmakingStore.connect();
 });
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-900 text-slate-100 p-8">
-        <h1 class="mb-4 text-4xl font-bold tracking-tight text-center text-cyan-400">
-            🐴 Chess 🐴
-        </h1>
-        <p class="text-lg text-center mb-8">powered by Java</p>
-
-        <div class="max-w-6xl mx-auto flex flex-col gap-8">
-            <div class="flex justify-between items-center bg-slate-800 p-4 rounded-lg shadow-lg">
-                <div v-if="authStore.isAuthenticated" class="flex items-center gap-4">
-                    <div class="w-10 h-10 bg-cyan-600 rounded-full flex items-center justify-center font-bold">
-                        {{ authStore.nickname?.[0] }}
-                    </div>
-                    <div>
-                        <div class="font-bold">{{ authStore.nickname }}</div>
-                        <div class="text-xs text-slate-400">{{ authStore.guestId }}</div>
-                    </div>
+    <div class="p-8 min-h-screen bg-white text-black">
+        <h1 class="text-3xl font-bold mb-6">Chess Game</h1>
+        
+        <div class="flex flex-col gap-6">
+            <div class="flex gap-6 items-center border-b pb-4">
+                <div class="flex flex-col">
+                    <span class="font-semibold">User: {{ authStore.nickname || 'Logging in...' }}</span>
+                    <span class="text-sm text-gray-500">ID: {{ authStore.guestId }}</span>
                 </div>
-                
                 <div class="flex items-center gap-2">
                     <div :class="['w-3 h-3 rounded-full', matchmakingStore.isConnected ? 'bg-green-500' : 'bg-red-500']"></div>
-                    <span class="text-sm">{{ matchmakingStore.isConnected ? 'Connected' : 'Disconnected' }}</span>
+                    <span>{{ matchmakingStore.isConnected ? 'Connected' : 'Disconnected' }}</span>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-8">
-                <div class="flex flex-col items-center">
+            <div class="flex flex-wrap gap-12">
+                <div class="border p-2 shadow-sm bg-gray-50">
                     <Board />
                 </div>
                 
-                <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-4 w-80">
                     <Matchmaking />
                     
-                    <div v-if="matchmakingStore.matchFound" class="bg-green-900/50 border border-green-500 p-4 rounded-lg animate-bounce">
-                        <div class="font-bold text-center mb-2 text-green-400">Match Found!</div>
-                        <div class="text-sm text-center">
-                            {{ matchmakingStore.matchFound.player1.nickname }} vs {{ matchmakingStore.matchFound.player2.nickname }}
-                        </div>
-                        <div class="text-xs text-center mt-2 opacity-70">
-                            Game ID: {{ matchmakingStore.matchFound.gameId }}
+                    <div v-if="matchmakingStore.matchFound" class="p-4 border-2 border-green-500 bg-green-50 rounded">
+                        <h4 class="font-bold text-green-700">Game Active</h4>
+                        <p class="text-sm">ID: {{ matchmakingStore.matchFound.gameId }}</p>
+                        <div class="mt-2 text-xs">
+                            <div>White: {{ matchmakingStore.matchFound.whitePlayer.nickname }}</div>
+                            <div>Black: {{ matchmakingStore.matchFound.blackPlayer.nickname }}</div>
                         </div>
                     </div>
                 </div>
@@ -65,10 +59,8 @@ onMounted(async () => {
 </template>
 
 <style>
-@reference "./globals.css";
-
-body {
-    margin: 0;
-    @apply bg-slate-900;
+body { 
+    margin: 0; 
+    font-family: sans-serif;
 }
 </style>

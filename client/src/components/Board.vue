@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { Chess } from 'chess.js';
+import { useMatchmakingStore } from '@/stores/matchmaking';
+import { useAuthStore } from '@/stores/auth';
 
+const matchmakingStore = useMatchmakingStore();
+const authStore = useAuthStore();
 
 const props = defineProps<{ size?: number }>();
 const boardSize = ref(props.size ?? 704);
@@ -57,6 +61,13 @@ const board = ref(chess.board());
 const gameHistory = ref<string[]>([]);
 const viewIndex = ref(0);
 
+const playerSide = computed(() => {
+    if (!matchmakingStore.matchFound) return null;
+    if (matchmakingStore.matchFound.whitePlayer.id === authStore.guestId) return 'w';
+    if (matchmakingStore.matchFound.blackPlayer.id === authStore.guestId) return 'b';
+    return null;
+});
+
 function syncBoard() {
     const c = new Chess();
     for (let i = 0; i < viewIndex.value; i++) c.move(gameHistory.value[i]);
@@ -79,6 +90,19 @@ function pieceAsset(square: number): string | null {
 
 // ── drag & drop ───────────────────────────────────────────────────────────────
 
+matchmakingStore.setMoveHandler((move) => {
+    if (move.playerId !== authStore.guestId) {
+        try {
+            chess.move(move.move);
+            gameHistory.value = chess.history();
+            viewIndex.value = gameHistory.value.length;
+            syncBoard();
+        } catch (e) {
+            console.error('Invalid move received from server', e);
+        }
+    }
+});
+
 const dragging = ref<{ fromSquare: number; asset: string; x: number; y: number } | null>(null);
 
 function squareToNotation(square: number): string {
@@ -100,6 +124,16 @@ function squareFromPoint(x: number, y: number): number | null {
 
 function onPiecePointerDown(e: PointerEvent, square: number) {
     if (viewIndex.value !== gameHistory.value.length) return;
+    
+    if (matchmakingStore.matchFound) {
+        if (chess.turn() !== playerSide.value) return;
+        
+        const row = Math.floor((square - 1) / 8);
+        const col = (square - 1) % 8;
+        const p = board.value[row]?.[col];
+        if (!p || p.color !== playerSide.value) return;
+    }
+
     const asset = pieceAsset(square);
     if (!asset) return;
     e.preventDefault();
@@ -119,17 +153,28 @@ function onDragUp(e: PointerEvent) {
     if (!dragging.value) return;
     const toSquare = squareFromPoint(e.clientX, e.clientY);
     if (toSquare !== null && toSquare !== dragging.value.fromSquare) {
+        const moveData = {
+            from: squareToNotation(dragging.value.fromSquare),
+            to: squareToNotation(toSquare),
+            promotion: 'q',
+        };
+
         try {
-            chess.move({
-                from: squareToNotation(dragging.value.fromSquare),
-                to: squareToNotation(toSquare),
-                promotion: 'q', // auto-queen for now
-            });
-            gameHistory.value = chess.history();
-            viewIndex.value = gameHistory.value.length;
-            syncBoard();
+            const move = chess.move(moveData);
+            if (move) {
+                gameHistory.value = chess.history();
+                viewIndex.value = gameHistory.value.length;
+                syncBoard();
+
+                if (matchmakingStore.matchFound) {
+                    matchmakingStore.sendMove(matchmakingStore.matchFound.gameId, {
+                        move: moveData,
+                        playerId: authStore.guestId
+                    });
+                }
+            }
         } catch {
-            // illegal move — piece snaps back automatically since board.value didn't change
+            // illegal move
         }
     }
     dragging.value = null;
@@ -138,20 +183,6 @@ function onDragUp(e: PointerEvent) {
     window.removeEventListener('pointerup', onDragUp);
 }
 
-// ── random play ───────────────────────────────────────────────────────────────
-
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-async function play() {
-    while (!chess.isGameOver()) {
-        const moves = chess.moves();
-        const move = moves[Math.floor(Math.random() * moves.length)];
-        if (!move) break;
-        chess.move(move);
-        board.value = chess.board();
-        await delay(1000);
-    }
-}
 function onKeyDown(e: KeyboardEvent) {
     if (e.key === 'ArrowLeft')  { viewIndex.value = Math.max(0, viewIndex.value - 1); syncBoard(); }
     if (e.key === 'ArrowRight') { viewIndex.value = Math.min(gameHistory.value.length, viewIndex.value + 1); syncBoard(); }
@@ -159,8 +190,6 @@ function onKeyDown(e: KeyboardEvent) {
 
 onMounted(() => window.addEventListener('keydown', onKeyDown));
 onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
-
-// play();
 </script>
 
 <template>
@@ -206,11 +235,11 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
             ></div>
         </div>
 
-        <div class="font-mono text-sm text-white w-32 max-h-96 overflow-y-auto shrink-0">
+        <div class="font-mono text-sm w-32 max-h-96 overflow-y-auto shrink-0">
             <div v-for="(_, i) in Math.ceil(gameHistory.length / 2)" :key="i" class="flex gap-2">
                 <span class="text-gray-500 w-5">{{ i + 1 }}.</span>
-                <span :class="{ 'text-yellow-400': viewIndex === i * 2 + 1 }">{{ gameHistory[i * 2] }}</span>
-                <span :class="{ 'text-yellow-400': viewIndex === i * 2 + 2 }">{{ gameHistory[i * 2 + 1] ?? '' }}</span>
+                <span :class="{ 'text-yellow-600': viewIndex === i * 2 + 1 }">{{ gameHistory[i * 2] }}</span>
+                <span :class="{ 'text-yellow-600': viewIndex === i * 2 + 2 }">{{ gameHistory[i * 2 + 1] ?? '' }}</span>
             </div>
         </div>
     </div>
