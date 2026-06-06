@@ -12,8 +12,12 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
     const matchFound = ref<any>(null);
     const isInGame = computed(() => !!matchFound.value);
     
-    // Reactive ref for the last move received
+    // Reactive refs for game state
     const lastMoveReceived = ref<any>(null);
+    const whiteTimeLeftMs = ref<number>(0);
+    const blackTimeLeftMs = ref<number>(0);
+    const currentTurn = ref<string>('w');
+    const gameOver = ref<{winner: string, reason: string} | null>(null);
 
     function connect() {
         if (stompClient.value?.connected) return;
@@ -30,7 +34,7 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
                 client.subscribe('/topic/casual-matches', (message) => {
                     const match = JSON.parse(message.body);
                     console.log('DEBUG: Match Found Event Received', match);
-                    handleMatchFound(match, client); // Pass client directly to avoid null ref
+                    handleMatchFound(match, client);
                 });
 
                 client.subscribe('/topic/rated-matches', (message) => {
@@ -52,12 +56,27 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
         if (match.whitePlayer.id === authStore.guestId || match.blackPlayer.id === authStore.guestId) {
             matchFound.value = match;
             isInQueue.value = false;
+            gameOver.value = null;
+            
+            // Initialize clocks based on time control
+            whiteTimeLeftMs.value = match.timeControlSeconds * 1000;
+            blackTimeLeftMs.value = match.timeControlSeconds * 1000;
+            currentTurn.value = 'w'; // White always starts
 
             console.log(`DEBUG: Subscribing to game topic: /topic/game/${match.gameId}`);
             activeClient.subscribe(`/topic/game/${match.gameId}`, (message) => {
-                const moveData = JSON.parse(message.body);
-                console.log('DEBUG: Move Received from Topic', moveData);
-                lastMoveReceived.value = moveData;
+                const data = JSON.parse(message.body);
+                console.log('DEBUG: Message Received from Topic', data);
+                
+                if (data.winner) {
+                    gameOver.value = data;
+                } else if (data.move) {
+                    // Update clocks from server truth
+                    whiteTimeLeftMs.value = data.whiteTimeLeftMs;
+                    blackTimeLeftMs.value = data.blackTimeLeftMs;
+                    currentTurn.value = data.currentTurn;
+                    lastMoveReceived.value = data; // Assign entire GameUpdate object
+                }
             });
             
             router.push(`/game/${match.gameId}`);
@@ -80,6 +99,7 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
         matchFound.value = null;
         isInQueue.value = false;
         lastMoveReceived.value = null;
+        gameOver.value = null;
     }
 
     function joinCasualQueue(timeControlSeconds: number = 180) {
@@ -106,6 +126,10 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
         matchFound,
         isInGame,
         lastMoveReceived,
+        whiteTimeLeftMs,
+        blackTimeLeftMs,
+        currentTurn,
+        gameOver,
         connect,
         joinCasualQueue,
         joinRatedQueue,

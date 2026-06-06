@@ -1,5 +1,6 @@
 package org.chess.matchmaking;
 
+import org.chess.game.GameService;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -11,14 +12,15 @@ import java.util.Map;
 @Service
 public class MatchmakingService {
 
-    // Maps timeControl (in seconds) to a queue of players
     private final Map<Integer, ConcurrentLinkedQueue<Player>> casualQueues = new ConcurrentHashMap<>();
     private final Map<Integer, ConcurrentLinkedQueue<Player>> ratedQueues = new ConcurrentHashMap<>();
     
     private final SimpMessagingTemplate messagingTemplate;
+    private final GameService gameService;
 
-    public MatchmakingService(SimpMessagingTemplate messagingTemplate) {
+    public MatchmakingService(SimpMessagingTemplate messagingTemplate, GameService gameService) {
         this.messagingTemplate = messagingTemplate;
+        this.gameService = gameService;
     }
 
     public void joinCasualQueue(String playerId, String nickname, int timeControlSeconds) {
@@ -45,11 +47,11 @@ public class MatchmakingService {
                 MatchFoundResponse match;
                 if (Math.random() > 0.5) {
                     match = new MatchFoundResponse(gameId, p1, p2, timeControlSeconds);
+                    gameService.startGame(gameId, p1.id(), p2.id(), timeControlSeconds);
                 } else {
                     match = new MatchFoundResponse(gameId, p2, p1, timeControlSeconds);
+                    gameService.startGame(gameId, p2.id(), p1.id(), timeControlSeconds);
                 }
-                
-                // TODO: Initialize game state (clocks, turns) in a GameService here
                 
                 messagingTemplate.convertAndSend(topic, match);
             }
