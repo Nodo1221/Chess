@@ -27,20 +27,6 @@ function quickPlay(seconds: number) {
 
 <template>
     <div class="border p-4">
-        <div class="flex justify-between items-center mb-4 border-b pb-2">
-            <h3 class="font-bold">Play</h3>
-            
-            <div v-if="!isGuest" class="text-sm">
-                <label class="cursor-pointer flex items-center gap-2">
-                    <input type="checkbox" v-model="playRated" />
-                    Rated
-                </label>
-            </div>
-            <div v-else class="text-xs text-gray-500">
-                Unrated only
-            </div>
-        </div>
-
         <div v-if="matchmakingStore.isInQueue" class="text-center py-4">
             <div>Searching for opponent...</div>
             <button 
