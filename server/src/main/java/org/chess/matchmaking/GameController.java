@@ -19,6 +19,7 @@ public class GameController {
 
     @MessageMapping("/game/move/{gameId}")
     public void handleMove(@DestinationVariable String gameId, @Payload MoveMessage move, Principal principal) {
+        System.out.println("DEBUG: Received move for game " + gameId + " from player " + move.playerId());
         // Broadcast the move to all subscribers of the game topic.
         messagingTemplate.convertAndSend("/topic/game/" + gameId, move);
     }

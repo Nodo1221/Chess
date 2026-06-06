@@ -11,8 +11,8 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
     const matchFound = ref<any>(null);
     const isInGame = computed(() => !!matchFound.value);
     
-    // Callback for moves - will be set by the Board component
-    let onMoveReceived: ((move: any) => void) | null = null;
+    // Reactive ref for the last move received
+    const lastMoveReceived = ref<any>(null);
 
     function connect() {
         if (stompClient.value?.connected) return;
@@ -24,18 +24,22 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
             },
             onConnect: () => {
                 isConnected.value = true;
+                console.log('DEBUG: Connected to WebSocket');
                 
                 client.subscribe('/topic/casual-matches', (message) => {
-                    handleMatchFound(JSON.parse(message.body));
+                    const match = JSON.parse(message.body);
+                    console.log('DEBUG: Match Found Event Received', match);
+                    handleMatchFound(match, client); // Pass client directly to avoid null ref
                 });
 
                 client.subscribe('/topic/rated-matches', (message) => {
-                    handleMatchFound(JSON.parse(message.body));
+                    handleMatchFound(JSON.parse(message.body), client);
                 });
             },
             onDisconnect: () => {
                 isConnected.value = false;
                 isInQueue.value = false;
+                console.log('DEBUG: Disconnected from WebSocket');
             },
         });
 
@@ -43,33 +47,36 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
         stompClient.value = client;
     }
 
-    function handleMatchFound(match: any) {
+    function handleMatchFound(match: any, activeClient: Client) {
         if (match.whitePlayer.id === authStore.guestId || match.blackPlayer.id === authStore.guestId) {
             matchFound.value = match;
             isInQueue.value = false;
 
-            // Subscribe to the specific game topic for moves
-            stompClient.value?.subscribe(`/topic/game/${match.gameId}`, (message) => {
-                if (onMoveReceived) onMoveReceived(JSON.parse(message.body));
+            console.log(`DEBUG: Subscribing to game topic: /topic/game/${match.gameId}`);
+            activeClient.subscribe(`/topic/game/${match.gameId}`, (message) => {
+                const moveData = JSON.parse(message.body);
+                console.log('DEBUG: Move Received from Topic', moveData);
+                lastMoveReceived.value = moveData;
             });
         }
     }
 
     function sendMove(gameId: string, move: any) {
-        if (!stompClient.value?.connected) return;
+        if (!stompClient.value?.connected) {
+            console.error('DEBUG: Cannot send move, STOMP not connected');
+            return;
+        }
+        console.log(`DEBUG: Sending move to /app/game/move/${gameId}`, move);
         stompClient.value.publish({
             destination: `/app/game/move/${gameId}`,
             body: JSON.stringify(move)
         });
     }
 
-    function setMoveHandler(handler: (move: any) => void) {
-        onMoveReceived = handler;
-    }
-
     function resetMatch() {
         matchFound.value = null;
         isInQueue.value = false;
+        lastMoveReceived.value = null;
     }
 
     function joinCasualQueue() {
@@ -89,11 +96,11 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
         isInQueue,
         matchFound,
         isInGame,
+        lastMoveReceived,
         connect,
         joinCasualQueue,
         joinRatedQueue,
         sendMove,
-        setMoveHandler,
         resetMatch
     };
 });

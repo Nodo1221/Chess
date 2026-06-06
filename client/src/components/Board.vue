@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { Chess } from 'chess.js';
 import { useMatchmakingStore } from '@/stores/matchmaking';
 import { useAuthStore } from '@/stores/auth';
@@ -16,61 +16,65 @@ function colour(square: number) {
     return (row + col) % 2 === 0 ? 'bg-cyan-300' : 'bg-cyan-700';
 }
 
-// ── resize ────────────────────────────────────────────────────────────────────
-
-let startSize = 0;
-let startLeft = 0;
-let startTop = 0;
-const boardEl = ref<HTMLElement | null>(null);
-let styleEl: HTMLStyleElement | null = null;
-
-function setCursor(cursor: string) {
-    if (!styleEl) {
-        styleEl = document.createElement('style');
-        document.head.appendChild(styleEl);
-    }
-    styleEl.textContent = cursor ? `* { cursor: ${cursor} !important; }` : '';
-}
-
-function onResizeDown(e: MouseEvent) {
-    setCursor('se-resize');
-    const rect = boardEl.value!.getBoundingClientRect();
-    startLeft = rect.left;
-    startTop = rect.top;
-    startSize = boardSize.value;
-    window.addEventListener('mousemove', onResizeMove);
-    window.addEventListener('mouseup', onResizeUp);
-}
-
-function onResizeMove(e: MouseEvent) {
-    const dx = e.clientX - startLeft;
-    const dy = e.clientY - startTop;
-    boardSize.value = Math.max(160, (dx + dy) / 2);
-}
-
-function onResizeUp() {
-    setCursor('');
-    window.removeEventListener('mousemove', onResizeMove);
-    window.removeEventListener('mouseup', onResizeUp);
-}
-
 // ── pieces ────────────────────────────────────────────────────────────────────
 
 const chess = new Chess();
 const board = ref(chess.board());
 const gameHistory = ref<string[]>([]);
 const viewIndex = ref(0);
+const isFlipped = ref(false);
 
 const playerSide = computed(() => {
     if (!matchmakingStore.matchFound) return null;
-    if (matchmakingStore.matchFound.whitePlayer.id === authStore.guestId) return 'w';
-    if (matchmakingStore.matchFound.blackPlayer.id === authStore.guestId) return 'b';
+    // CRITICAL: Check both, but if IDs are identical, warn user
+    const isWhite = matchmakingStore.matchFound.whitePlayer.id === authStore.guestId;
+    const isBlack = matchmakingStore.matchFound.blackPlayer.id === authStore.guestId;
+    
+    if (isWhite && isBlack) return 'w'; // Default to white if self-playing
+    if (isWhite) return 'w';
+    if (isBlack) return 'b';
     return null;
+});
+
+const isSelfPlay = computed(() => {
+    return matchmakingStore.matchFound?.whitePlayer.id === matchmakingStore.matchFound?.blackPlayer.id;
+});
+
+// Auto-flip when match starts
+watch(playerSide, (side) => {
+    if (side === 'b') isFlipped.value = true;
+    else isFlipped.value = false;
+}, { immediate: true });
+
+// Sync moves from other players
+watch(() => matchmakingStore.lastMoveReceived, (moveData) => {
+    if (!moveData) return;
+    
+    // We only apply if:
+    // 1. It's from a different player ID
+    // 2. OR if it's a self-play match (for debugging), we apply it to the "other" side of the board
+    const isFromOpponent = moveData.playerId !== authStore.guestId;
+    
+    if (isFromOpponent) {
+        console.log('DEBUG: Opponent move received:', moveData.move);
+        try {
+            const result = chess.move(moveData.move);
+            if (result) {
+                gameHistory.value = [...chess.history()];
+                viewIndex.value = gameHistory.value.length;
+                syncBoard();
+            }
+        } catch (e) {
+            console.error('DEBUG: Failed to apply move', e);
+        }
+    }
 });
 
 function syncBoard() {
     const c = new Chess();
-    for (let i = 0; i < viewIndex.value; i++) c.move(gameHistory.value[i]);
+    for (const m of gameHistory.value.slice(0, viewIndex.value)) {
+        c.move(m);
+    }
     board.value = c.board();
 }
 
@@ -90,19 +94,6 @@ function pieceAsset(square: number): string | null {
 
 // ── drag & drop ───────────────────────────────────────────────────────────────
 
-matchmakingStore.setMoveHandler((move) => {
-    if (move.playerId !== authStore.guestId) {
-        try {
-            chess.move(move.move);
-            gameHistory.value = chess.history();
-            viewIndex.value = gameHistory.value.length;
-            syncBoard();
-        } catch (e) {
-            console.error('Invalid move received from server', e);
-        }
-    }
-});
-
 const dragging = ref<{ fromSquare: number; asset: string; x: number; y: number } | null>(null);
 
 function squareToNotation(square: number): string {
@@ -117,21 +108,38 @@ function squareFromPoint(x: number, y: number): number | null {
     const relX = x - rect.left;
     const relY = y - rect.top;
     if (relX < 0 || relY < 0 || relX > rect.width || relY > rect.height) return null;
-    const col = Math.floor((relX / rect.width) * 8);
-    const row = Math.floor((relY / rect.height) * 8);
+    
+    let col = Math.floor((relX / rect.width) * 8);
+    let row = Math.floor((relY / rect.height) * 8);
+    
+    if (isFlipped.value) {
+        col = 7 - col;
+        row = 7 - row;
+    }
+    
     return row * 8 + col + 1;
 }
+
+const boardEl = ref<HTMLElement | null>(null);
 
 function onPiecePointerDown(e: PointerEvent, square: number) {
     if (viewIndex.value !== gameHistory.value.length) return;
     
     if (matchmakingStore.matchFound) {
-        if (chess.turn() !== playerSide.value) return;
+        // Stop move if not our turn
+        if (chess.turn() !== playerSide.value) {
+            console.warn("Not your turn!");
+            return;
+        }
         
         const row = Math.floor((square - 1) / 8);
         const col = (square - 1) % 8;
         const p = board.value[row]?.[col];
-        if (!p || p.color !== playerSide.value) return;
+        // Stop move if not our piece
+        if (!p || p.color !== playerSide.value) {
+            console.warn("Not your piece!");
+            return;
+        }
     }
 
     const asset = pieceAsset(square);
@@ -139,7 +147,6 @@ function onPiecePointerDown(e: PointerEvent, square: number) {
     e.preventDefault();
     e.stopPropagation();
     dragging.value = { fromSquare: square, asset, x: e.clientX, y: e.clientY };
-    setCursor('grabbing');
     window.addEventListener('pointermove', onDragMove);
     window.addEventListener('pointerup', onDragUp);
 }
@@ -162,7 +169,7 @@ function onDragUp(e: PointerEvent) {
         try {
             const move = chess.move(moveData);
             if (move) {
-                gameHistory.value = chess.history();
+                gameHistory.value = [...chess.history()];
                 viewIndex.value = gameHistory.value.length;
                 syncBoard();
 
@@ -174,11 +181,10 @@ function onDragUp(e: PointerEvent) {
                 }
             }
         } catch {
-            // illegal move
+            // illegal
         }
     }
     dragging.value = null;
-    setCursor('');
     window.removeEventListener('pointermove', onDragMove);
     window.removeEventListener('pointerup', onDragUp);
 }
@@ -186,6 +192,7 @@ function onDragUp(e: PointerEvent) {
 function onKeyDown(e: KeyboardEvent) {
     if (e.key === 'ArrowLeft')  { viewIndex.value = Math.max(0, viewIndex.value - 1); syncBoard(); }
     if (e.key === 'ArrowRight') { viewIndex.value = Math.min(gameHistory.value.length, viewIndex.value + 1); syncBoard(); }
+    if (e.key.toLowerCase() === 'f') { isFlipped.value = !isFlipped.value; }
 }
 
 onMounted(() => window.addEventListener('keydown', onKeyDown));
@@ -193,53 +200,57 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
 </script>
 
 <template>
-    <div class="flex gap-4 items-start">
-        <div class="relative select-none shrink-0" ref="boardEl" :style="{ width: `${boardSize}px` }">
-            <div class="grid grid-cols-8" style="aspect-ratio: 1 / 1">
-                <div
-                    v-for="square in 64"
-                    :key="square"
-                    class="relative aspect-square flex items-center justify-center"
-                    :class="colour(square)"
-                >
-                    <img
-                        v-if="pieceAsset(square)"
-                        :src="pieceAsset(square)!"
-                        class="w-full h-full"
-                        :class="{ 'opacity-0': dragging?.fromSquare === square }"
-                        draggable="false"
-                        @pointerdown="(e) => onPiecePointerDown(e, square)"
-                    />
-                </div>
-            </div>
-
-            <Teleport to="body">
-                <img
-                    v-if="dragging"
-                    :src="dragging.asset"
-                    class="fixed pointer-events-none z-50"
-                    draggable="false"
-                    :style="{
-                        left: `${dragging.x}px`,
-                        top: `${dragging.y}px`,
-                        width: `${boardSize / 8}px`,
-                        height: `${boardSize / 8}px`,
-                        transform: 'translate(-50%, -50%)',
-                    }"
-                />
-            </Teleport>
-
-            <div
-                class="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
-                @mousedown.prevent="onResizeDown"
-            ></div>
+    <div class="flex flex-col gap-2">
+        <div v-if="matchmakingStore.matchFound" class="text-sm font-mono bg-gray-100 p-1 px-2 rounded">
+            You are: <span class="font-bold" :class="playerSide === 'w' ? 'text-blue-600' : 'text-red-600'">
+                {{ playerSide === 'w' ? 'WHITE' : 'BLACK' }}
+            </span>
+            <span v-if="isSelfPlay" class="ml-4 text-red-500 font-bold underline">WARNING: SELF-PLAY DETECTED (USE INCOGNITO)</span>
         </div>
 
-        <div class="font-mono text-sm w-32 max-h-96 overflow-y-auto shrink-0">
-            <div v-for="(_, i) in Math.ceil(gameHistory.length / 2)" :key="i" class="flex gap-2">
-                <span class="text-gray-500 w-5">{{ i + 1 }}.</span>
-                <span :class="{ 'text-yellow-600': viewIndex === i * 2 + 1 }">{{ gameHistory[i * 2] }}</span>
-                <span :class="{ 'text-yellow-600': viewIndex === i * 2 + 2 }">{{ gameHistory[i * 2 + 1] ?? '' }}</span>
+        <div class="flex gap-4 items-start">
+            <div class="relative select-none shrink-0" ref="boardEl" :style="{ width: `${boardSize}px` }">
+                <div class="grid grid-cols-8 border-2 border-gray-800" style="aspect-ratio: 1 / 1">
+                    <div
+                        v-for="i in 64"
+                        :key="i"
+                        class="relative aspect-square flex items-center justify-center"
+                        :class="colour(isFlipped ? 65 - i : i)"
+                    >
+                        <img
+                            v-if="pieceAsset(isFlipped ? 65 - i : i)"
+                            :src="pieceAsset(isFlipped ? 65 - i : i)!"
+                            class="w-full h-full"
+                            :class="{ 'opacity-0': dragging?.fromSquare === (isFlipped ? 65 - i : i) }"
+                            draggable="false"
+                            @pointerdown="(e) => onPiecePointerDown(e, isFlipped ? 65 - i : i)"
+                        />
+                    </div>
+                </div>
+
+                <Teleport to="body">
+                    <img
+                        v-if="dragging"
+                        :src="dragging.asset"
+                        class="fixed pointer-events-none z-50"
+                        draggable="false"
+                        :style="{
+                            left: `${dragging.x}px`,
+                            top: `${dragging.y}px`,
+                            width: `${boardSize / 8}px`,
+                            height: `${boardSize / 8}px`,
+                            transform: 'translate(-50%, -50%)',
+                        }"
+                    />
+                </Teleport>
+            </div>
+
+            <div class="font-mono text-sm w-32 max-h-96 overflow-y-auto shrink-0 border-l pl-4">
+                <div v-for="(_, i) in Math.ceil(gameHistory.length / 2)" :key="i" class="flex gap-2">
+                    <span class="text-gray-500 w-5">{{ i + 1 }}.</span>
+                    <span :class="{ 'bg-yellow-200': viewIndex === i * 2 + 1 }">{{ gameHistory[i * 2] }}</span>
+                    <span :class="{ 'bg-yellow-200': viewIndex === i * 2 + 2 }">{{ gameHistory[i * 2 + 1] ?? '' }}</span>
+                </div>
             </div>
         </div>
     </div>
