@@ -1,7 +1,5 @@
 package org.chess.matchmaking;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -45,18 +43,7 @@ public class MatchmakingService {
         }
     }
 
-    @Data
-    @AllArgsConstructor
-    public static class Player {
-        private String id;
-        private String nickname;
-    }
+    public record Player(String id, String nickname) {}
 
-    @Data
-    @AllArgsConstructor
-    public static class MatchFoundResponse {
-        private String gameId;
-        private Player player1;
-        private Player player2;
-    }
+    public record MatchFoundResponse(String gameId, Player player1, Player player2) {}
 }

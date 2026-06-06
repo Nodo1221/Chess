@@ -1,7 +1,5 @@
 package org.chess.security;
 
-import lombok.Builder;
-import lombok.Data;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -24,18 +22,8 @@ public class AuthController {
         String nickname = "Guest_" + guestId.substring(6);
         String token = jwtService.generateGuestToken(guestId, nickname);
 
-        return GuestResponse.builder()
-                .guestId(guestId)
-                .nickname(nickname)
-                .token(token)
-                .build();
+        return new GuestResponse(guestId, nickname, token);
     }
 
-    @Data
-    @Builder
-    public static class GuestResponse {
-        private String guestId;
-        private String nickname;
-        private String token;
-    }
+    public record GuestResponse(String guestId, String nickname, String token) {}
 }
