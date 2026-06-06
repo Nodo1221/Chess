@@ -1,66 +1,53 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { RouterView, useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth';
 import { useMatchmakingStore } from './stores/matchmaking';
-import Board from './components/Board.vue';
-import Matchmaking from './components/Matchmaking.vue';
+import { onMounted, watch } from 'vue';
 
 const authStore = useAuthStore();
 const matchmakingStore = useMatchmakingStore();
+const router = useRouter();
 
 onMounted(async () => {
-    try {
-        if (!authStore.isAuthenticated) {
-            await authStore.loginAsGuest();
-        }
+    if (authStore.isAuthenticated) {
         matchmakingStore.connect();
-    } catch (e) {
-        console.error('App initialization failed', e);
+    }
+});
+
+// Auto-navigate to game when match is found
+watch(() => matchmakingStore.isInGame, (inGame) => {
+    if (inGame) {
+        router.push('/play');
     }
 });
 </script>
 
 <template>
-    <div class="p-8 min-h-screen bg-white text-black">
-        <h1 class="text-3xl font-bold mb-6">Chess Game</h1>
-        
-        <div class="flex flex-col gap-6">
-            <div class="flex gap-6 items-center border-b pb-4">
-                <div class="flex flex-col">
-                    <span class="font-semibold">User: {{ authStore.nickname || 'Logging in...' }}</span>
-                    <span class="text-sm text-gray-500">ID: {{ authStore.guestId }}</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <div :class="['w-3 h-3 rounded-full', matchmakingStore.isConnected ? 'bg-green-500' : 'bg-red-500']"></div>
-                    <span>{{ matchmakingStore.isConnected ? 'Connected' : 'Disconnected' }}</span>
-                </div>
-            </div>
-
-            <div class="flex flex-wrap gap-12">
-                <div class="border p-2 shadow-sm bg-gray-50">
-                    <Board />
+    <div class="min-h-screen font-sans bg-white text-black">
+        <header class="p-4 border-b flex justify-between items-center bg-gray-50">
+            <h1 class="text-xl font-bold cursor-pointer" @click="router.push('/')">🐴 Chess App</h1>
+            
+            <div class="flex gap-6 items-center">
+                <div class="flex items-center gap-2 text-sm">
+                    <div :class="['w-2 h-2 rounded-full', matchmakingStore.isConnected ? 'bg-green-500' : 'bg-red-500']"></div>
+                    <span class="text-gray-500">{{ matchmakingStore.isConnected ? 'Connected' : 'Offline' }}</span>
                 </div>
                 
-                <div class="flex flex-col gap-4 w-80">
-                    <Matchmaking />
-                    
-                    <div v-if="matchmakingStore.matchFound" class="p-4 border-2 border-green-500 bg-green-50 rounded">
-                        <h4 class="font-bold text-green-700">Game Active</h4>
-                        <p class="text-sm">ID: {{ matchmakingStore.matchFound.gameId }}</p>
-                        <div class="mt-2 text-xs">
-                            <div>White: {{ matchmakingStore.matchFound.whitePlayer.nickname }}</div>
-                            <div>Black: {{ matchmakingStore.matchFound.blackPlayer.nickname }}</div>
-                        </div>
-                    </div>
+                <div v-if="authStore.isAuthenticated" class="flex gap-4 items-center">
+                    <span class="text-sm font-mono border px-2 py-1 bg-white">{{ authStore.nickname }}</span>
+                    <button @click="authStore.logout(); router.push('/')" class="text-xs text-red-500 hover:underline">Logout</button>
                 </div>
             </div>
-        </div>
+        </header>
+
+        <main>
+            <RouterView />
+        </main>
     </div>
 </template>
 
 <style>
 body { 
     margin: 0; 
-    font-family: sans-serif;
 }
 </style>

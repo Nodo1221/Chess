@@ -1,8 +1,7 @@
 package org.chess.matchmaking;
 
-import org.chess.security.JwtService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
@@ -11,33 +10,30 @@ import java.security.Principal;
 public class MatchmakingController {
 
     private final MatchmakingService matchmakingService;
-    private final JwtService jwtService;
 
-    public MatchmakingController(MatchmakingService matchmakingService, JwtService jwtService) {
+    public MatchmakingController(MatchmakingService matchmakingService) {
         this.matchmakingService = matchmakingService;
-        this.jwtService = jwtService;
     }
 
     @MessageMapping("/queue.join.casual")
-    public void joinCasualQueue(Principal principal, SimpMessageHeaderAccessor headerAccessor) {
+    public void joinCasualQueue(Principal principal, @Payload JoinQueueRequest request) {
         if (principal == null) return;
         
         String playerId = principal.getName();
-        // For simplicity, we get nickname from JWT claim again if needed, 
-        // or just use playerId as nickname for now.
-        // In a real app, you might store nickname in the Principal object.
         String nickname = playerId; 
         
-        matchmakingService.joinCasualQueue(playerId, nickname);
+        matchmakingService.joinCasualQueue(playerId, nickname, request.timeControlSeconds());
     }
 
     @MessageMapping("/queue.join.rated")
-    public void joinRatedQueue(Principal principal) {
+    public void joinRatedQueue(Principal principal, @Payload JoinQueueRequest request) {
         if (principal == null) return;
         
         String playerId = principal.getName();
         String nickname = playerId;
         
-        matchmakingService.joinRatedQueue(playerId, nickname);
+        matchmakingService.joinRatedQueue(playerId, nickname, request.timeControlSeconds());
     }
+    
+    public record JoinQueueRequest(int timeControlSeconds) {}
 }

@@ -79,15 +79,21 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
         lastMoveReceived.value = null;
     }
 
-    function joinCasualQueue() {
+    function joinCasualQueue(timeControlSeconds: number = 180) {
         if (!stompClient.value?.connected || isInGame.value) return;
-        stompClient.value.publish({ destination: '/app/queue.join.casual' });
+        stompClient.value.publish({ 
+            destination: '/app/queue.join.casual',
+            body: JSON.stringify({ timeControlSeconds })
+        });
         isInQueue.value = true;
     }
 
-    function joinRatedQueue() {
+    function joinRatedQueue(timeControlSeconds: number = 180) {
         if (!stompClient.value?.connected || isInGame.value) return;
-        stompClient.value.publish({ destination: '/app/queue.join.rated' });
+        stompClient.value.publish({ 
+            destination: '/app/queue.join.rated',
+            body: JSON.stringify({ timeControlSeconds })
+        });
         isInQueue.value = true;
     }
 
