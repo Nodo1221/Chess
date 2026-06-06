@@ -13,13 +13,6 @@ onMounted(async () => {
         matchmakingStore.connect();
     }
 });
-
-// Auto-navigate to game when match is found
-watch(() => matchmakingStore.isInGame, (inGame) => {
-    if (inGame) {
-        router.push('/play');
-    }
-});
 </script>
 
 <template>

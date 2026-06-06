@@ -11,9 +11,10 @@ const router = createRouter({
             component: HomeView,
         },
         {
-            path: '/play',
-            name: 'play',
+            path: '/game/:id',
+            name: 'game',
             component: GameView,
+            props: true
         },
     ],
 });

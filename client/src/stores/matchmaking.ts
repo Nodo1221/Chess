@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { Client } from '@stomp/stompjs';
 import { useAuthStore } from './auth';
+import router from '@/router';
 
 export const useMatchmakingStore = defineStore('matchmaking', () => {
     const authStore = useAuthStore();
@@ -58,6 +59,8 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
                 console.log('DEBUG: Move Received from Topic', moveData);
                 lastMoveReceived.value = moveData;
             });
+            
+            router.push(`/game/${match.gameId}`);
         }
     }
 

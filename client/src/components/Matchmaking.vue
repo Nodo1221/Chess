@@ -7,65 +7,69 @@ const matchmakingStore = useMatchmakingStore();
 const authStore = useAuthStore();
 
 const isGuest = computed(() => authStore.guestId?.startsWith('guest-'));
-const selectedTime = ref(180);
+const playRated = ref(false); // Toggle for signed-in users
 
 const timeControls = [
-    { label: '1 min', value: 60 },
-    { label: '3 min', value: 180 },
-    { label: '5 min', value: 300 },
-    { label: '10 min', value: 600 },
+    { label: '1 min', value: 60, icon: '⚡' },
+    { label: '3 min', value: 180, icon: '🔥' },
+    { label: '5 min', value: 300, icon: '⏱️' },
+    { label: '10 min', value: 600, icon: '🐢' },
 ];
+
+function quickPlay(seconds: number) {
+    if (isGuest.value || !playRated.value) {
+        matchmakingStore.joinCasualQueue(seconds);
+    } else {
+        matchmakingStore.joinRatedQueue(seconds);
+    }
+}
 </script>
 
 <template>
-    <div class="border p-4">
-        <h3>Matchmaking</h3>
-        
-        <div v-if="!matchmakingStore.isInGame" class="flex flex-col gap-4 mt-4">
-            <div>
-                <div class="grid grid-cols-2 gap-2">
-                    <button 
-                        v-for="tc in timeControls" 
-                        :key="tc.value"
-                        @click="selectedTime = tc.value"
-                        :class="['border p-2 text-sm', selectedTime === tc.value ? 'bg-blue-100 border-blue-500 font-bold' : 'bg-white']"
-                        :disabled="matchmakingStore.isInQueue"
-                    >
-                        {{ tc.label }}
-                    </button>
-                </div>
+    <div class="border p-6 bg-white shadow-sm max-w-md mx-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold">Quick Pairing</h3>
+            
+            <div v-if="!isGuest" class="flex items-center gap-2 text-sm">
+                <span :class="{'text-gray-400': playRated}">Casual</span>
+                <button 
+                    @click="playRated = !playRated"
+                    class="w-10 h-5 rounded-full relative transition-colors duration-200"
+                    :class="playRated ? 'bg-green-500' : 'bg-gray-300'"
+                >
+                    <div 
+                        class="w-3 h-3 bg-white rounded-full absolute top-1 transition-transform duration-200"
+                        :style="{ left: playRated ? 'calc(100% - 16px)' : '4px' }"
+                    ></div>
+                </button>
+                <span :class="{'text-gray-400': !playRated}">Rated</span>
             </div>
-
-            <div class="flex flex-col gap-2">
-                <button 
-                    @click="matchmakingStore.joinCasualQueue(selectedTime)"
-                    :disabled="!matchmakingStore.isConnected || matchmakingStore.isInQueue"
-                    class="border px-4 py-2 disabled:opacity-50 font-bold bg-gray-50 hover:bg-gray-100"
-                >
-                    {{ matchmakingStore.isInQueue ? 'Searching...' : `Play Casual (${selectedTime / 60}m)` }}
-                </button>
-                
-                <button 
-                    v-if="!isGuest"
-                    @click="matchmakingStore.joinRatedQueue(selectedTime)"
-                    :disabled="!matchmakingStore.isConnected || matchmakingStore.isInQueue"
-                    class="border px-4 py-2 disabled:opacity-50 font-bold bg-gray-50 hover:bg-gray-100"
-                >
-                    Play Rated ({{ selectedTime / 60 }}m)
-                </button>
-                
-                <div v-else class="text-center p-2 border border-dashed text-gray-500 text-sm">
-                    Sign in to play Rated
-                </div>
+            <div v-else class="text-xs text-gray-500 italic">
+                Unrated only
             </div>
         </div>
 
-        <div v-else class="mt-4">
+        <div v-if="matchmakingStore.isInQueue" class="text-center py-8">
+            <div class="animate-pulse mb-4 text-2xl">⏳</div>
+            <div class="font-bold mb-4">Searching for opponent...</div>
             <button 
                 @click="matchmakingStore.resetMatch"
-                class="text-sm text-red-500 hover:underline border p-2 w-full text-center"
+                class="text-sm text-red-500 hover:underline border px-4 py-2"
             >
-                Resign / Leave Game
+                Cancel Search
+            </button>
+        </div>
+        
+        <div v-else class="grid grid-cols-2 gap-4">
+            <button 
+                v-for="tc in timeControls" 
+                :key="tc.value"
+                @click="quickPlay(tc.value)"
+                class="border p-6 flex flex-col items-center gap-2 hover:bg-gray-50 hover:border-blue-500 transition-all cursor-pointer"
+                :disabled="!matchmakingStore.isConnected"
+            >
+                <span class="text-2xl">{{ tc.icon }}</span>
+                <span class="font-bold">{{ tc.label }}</span>
             </button>
         </div>
     </div>
