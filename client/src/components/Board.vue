@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { Chess } from 'chess.js';
+
 
 const props = defineProps<{ size?: number }>();
 const boardSize = ref(props.size ?? 704);
@@ -53,6 +54,14 @@ function onResizeUp() {
 
 const chess = new Chess();
 const board = ref(chess.board());
+const gameHistory = ref<string[]>([]);
+const viewIndex = ref(0);
+
+function syncBoard() {
+    const c = new Chess();
+    for (let i = 0; i < viewIndex.value; i++) c.move(gameHistory.value[i]);
+    board.value = c.board();
+}
 
 const pieceAssets = import.meta.glob('../assets/pieces/*.svg', {
     eager: true,
@@ -90,6 +99,7 @@ function squareFromPoint(x: number, y: number): number | null {
 }
 
 function onPiecePointerDown(e: PointerEvent, square: number) {
+    if (viewIndex.value !== gameHistory.value.length) return;
     const asset = pieceAsset(square);
     if (!asset) return;
     e.preventDefault();
@@ -115,7 +125,9 @@ function onDragUp(e: PointerEvent) {
                 to: squareToNotation(toSquare),
                 promotion: 'q', // auto-queen for now
             });
-            board.value = chess.board();
+            gameHistory.value = chess.history();
+            viewIndex.value = gameHistory.value.length;
+            syncBoard();
         } catch {
             // illegal move — piece snaps back automatically since board.value didn't change
         }
@@ -140,51 +152,66 @@ async function play() {
         await delay(1000);
     }
 }
+function onKeyDown(e: KeyboardEvent) {
+    if (e.key === 'ArrowLeft')  { viewIndex.value = Math.max(0, viewIndex.value - 1); syncBoard(); }
+    if (e.key === 'ArrowRight') { viewIndex.value = Math.min(gameHistory.value.length, viewIndex.value + 1); syncBoard(); }
+}
+
+onMounted(() => window.addEventListener('keydown', onKeyDown));
+onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
 
 // play();
 </script>
 
 <template>
-    <div class="relative select-none" ref="boardEl" :style="{ width: `${boardSize}px` }">
-        <div class="grid grid-cols-8" style="aspect-ratio: 1 / 1">
-            <div
-                v-for="square in 64"
-                :key="square"
-                class="relative aspect-square flex items-center justify-center"
-                :class="colour(square)"
-            >
-                <img
-                    v-if="pieceAsset(square)"
-                    :src="pieceAsset(square)!"
-                    class="w-full h-full"
-                    :class="{ 'opacity-0': dragging?.fromSquare === square }"
-                    draggable="false"
-                    @pointerdown="(e) => onPiecePointerDown(e, square)"
-                />
+    <div class="flex gap-4 items-start">
+        <div class="relative select-none shrink-0" ref="boardEl" :style="{ width: `${boardSize}px` }">
+            <div class="grid grid-cols-8" style="aspect-ratio: 1 / 1">
+                <div
+                    v-for="square in 64"
+                    :key="square"
+                    class="relative aspect-square flex items-center justify-center"
+                    :class="colour(square)"
+                >
+                    <img
+                        v-if="pieceAsset(square)"
+                        :src="pieceAsset(square)!"
+                        class="w-full h-full"
+                        :class="{ 'opacity-0': dragging?.fromSquare === square }"
+                        draggable="false"
+                        @pointerdown="(e) => onPiecePointerDown(e, square)"
+                    />
+                </div>
             </div>
+
+            <Teleport to="body">
+                <img
+                    v-if="dragging"
+                    :src="dragging.asset"
+                    class="fixed pointer-events-none z-50"
+                    draggable="false"
+                    :style="{
+                        left: `${dragging.x}px`,
+                        top: `${dragging.y}px`,
+                        width: `${boardSize / 8}px`,
+                        height: `${boardSize / 8}px`,
+                        transform: 'translate(-50%, -50%)',
+                    }"
+                />
+            </Teleport>
+
+            <div
+                class="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
+                @mousedown.prevent="onResizeDown"
+            ></div>
         </div>
 
-        <!-- floating ghost while dragging -->
-        <Teleport to="body">
-            <img
-                v-if="dragging"
-                :src="dragging.asset"
-                class="fixed pointer-events-none z-50"
-                draggable="false"
-                :style="{
-                    left: `${dragging.x}px`,
-                    top: `${dragging.y}px`,
-                    width: `${boardSize / 8}px`,
-                    height: `${boardSize / 8}px`,
-                    transform: 'translate(-50%, -50%)',
-                }"
-            />
-        </Teleport>
-
-        <!-- resize handle -->
-        <div
-            class="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
-            @mousedown.prevent="onResizeDown"
-        ></div>
+        <div class="font-mono text-sm text-white w-32 max-h-96 overflow-y-auto shrink-0">
+            <div v-for="(_, i) in Math.ceil(gameHistory.length / 2)" :key="i" class="flex gap-2">
+                <span class="text-gray-500 w-5">{{ i + 1 }}.</span>
+                <span :class="{ 'text-yellow-400': viewIndex === i * 2 + 1 }">{{ gameHistory[i * 2] }}</span>
+                <span :class="{ 'text-yellow-400': viewIndex === i * 2 + 2 }">{{ gameHistory[i * 2 + 1] ?? '' }}</span>
+            </div>
+        </div>
     </div>
 </template>
