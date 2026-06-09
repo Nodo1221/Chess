@@ -8,7 +8,7 @@ const boardSize = ref(props.size ?? 704);
 function colour(square: number) {
     const row = Math.floor((square - 1) / 8);
     const col = (square - 1) % 8;
-    return (row + col) % 2 === 0 ? 'bg-red-700' : 'bg-black';
+    return (row + col) % 2 === 0 ? 'bg-cyan-300' : 'bg-cyan-700';
 }
 
 // ── resize ────────────────────────────────────────────────────────────────────
