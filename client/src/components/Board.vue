@@ -201,11 +201,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
 
 <template>
     <div class="flex flex-col gap-2">
-        <div v-if="matchmakingStore.matchFound" class="text-sm font-mono bg-gray-100 p-1 px-2 rounded">
-            You are: <span class="font-bold" :class="playerSide === 'w' ? 'text-blue-600' : 'text-red-600'">
-                {{ playerSide === 'w' ? 'WHITE' : 'BLACK' }}
-            </span>
-            <span v-if="isSelfPlay" class="ml-4 text-red-500 font-bold underline">WARNING: SELF-PLAY DETECTED (USE INCOGNITO)</span>
+        <div v-if="matchmakingStore.matchFound" class="text-sm">
+            You are: {{ playerSide === 'w' ? 'WHITE' : 'BLACK' }}
+            <span v-if="isSelfPlay"> (WARNING: SELF-PLAY DETECTED)</span>
         </div>
 
         <div class="flex gap-4 items-start">

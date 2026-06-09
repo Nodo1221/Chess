@@ -4,14 +4,6 @@ server:
 spring:
   application:
     name: chess-server
-  datasource:
-    url: jdbc:postgresql://localhost:5432/chess
-    username: postgres
-    password: password
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
 
 logging:
   level:
