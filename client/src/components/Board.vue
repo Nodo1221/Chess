@@ -169,22 +169,18 @@ const boardEl = ref<HTMLElement | null>(null);
 function onPiecePointerDown(e: PointerEvent, square: number) {
     if (viewIndex.value !== gameHistory.value.length) return;
     
-    if (matchmakingStore.matchFound) {
-        // Stop move if not our turn
-        if (chess.turn() !== playerSide.value) {
-            console.warn("Not your turn!");
-            return;
-        }
-        
-        const row = Math.floor((square - 1) / 8);
-        const col = (square - 1) % 8;
-        const p = board.value[row]?.[col];
-        // Stop move if not our piece
-        if (!p || p.color !== playerSide.value) {
-            console.warn("Not your piece!");
-            return;
-        }
-    }
+    // Only allow movement if it's an active match and we are a player
+    if (!matchmakingStore.matchFound || !playerSide.value) return;
+
+    // Stop move if not our turn
+    if (chess.turn() !== playerSide.value) return;
+    
+    const row = Math.floor((square - 1) / 8);
+    const col = (square - 1) % 8;
+    const p = board.value[row]?.[col];
+
+    // Stop move if not our piece
+    if (!p || p.color !== playerSide.value) return;
 
     const asset = pieceAsset(square);
     if (!asset) return;
@@ -274,8 +270,11 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
                         <img
                             v-if="pieceAsset(isFlipped ? 65 - i : i)"
                             :src="pieceAsset(isFlipped ? 65 - i : i)!"
-                            class="w-full h-full cursor-grab"
-                            :class="{ 'opacity-0': dragging?.fromSquare === (isFlipped ? 65 - i : i) }"
+                            class="w-full h-full"
+                            :class="{ 
+                                'opacity-0': dragging?.fromSquare === (isFlipped ? 65 - i : i),
+                                'cursor-grab': matchmakingStore.matchFound && playerSide
+                            }"
                             draggable="false"
                             @pointerdown="(e) => onPiecePointerDown(e, isFlipped ? 65 - i : i)"
                         />
