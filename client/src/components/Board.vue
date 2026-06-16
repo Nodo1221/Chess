@@ -252,6 +252,16 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
 
 <template>
     <div class="flex gap-4 items-start">
+        <!-- Move History (Left) -->
+        <div class="text-sm w-32 max-h-[704px] overflow-y-auto shrink-0 pr-4 self-stretch pt-10">
+            <div v-for="(_, i) in Math.ceil(gameHistory.length / 2)" :key="i" class="flex gap-2">
+                <span class="text-gray-500 w-5">{{ i + 1 }}.</span>
+                <span :class="{ 'bg-yellow-200 px-1': viewIndex === i * 2 + 1 }">{{ gameHistory[i * 2] }}</span>
+                <span :class="{ 'bg-yellow-200 px-1': viewIndex === i * 2 + 2 }">{{ gameHistory[i * 2 + 1] ?? '' }}</span>
+            </div>
+        </div>
+
+        <!-- Board & Players (Center) -->
         <div class="flex flex-col gap-2">
             <!-- Top Player -->
             <div v-if="topPlayer" class="flex justify-between items-center text-sm font-bold h-8">
@@ -307,14 +317,6 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
                     </span>
                 </div>
                 <span class="text-lg px-2">{{ formatTime(bottomPlayer.ms) }}</span>
-            </div>
-        </div>
-
-        <div class="text-sm w-32 max-h-[704px] overflow-y-auto shrink-0 pl-4 self-stretch pt-10">
-            <div v-for="(_, i) in Math.ceil(gameHistory.length / 2)" :key="i" class="flex gap-2">
-                <span class="text-gray-500 w-5">{{ i + 1 }}.</span>
-                <span :class="{ 'bg-yellow-200 px-1': viewIndex === i * 2 + 1 }">{{ gameHistory[i * 2] }}</span>
-                <span :class="{ 'bg-yellow-200 px-1': viewIndex === i * 2 + 2 }">{{ gameHistory[i * 2 + 1] ?? '' }}</span>
             </div>
         </div>
     </div>
