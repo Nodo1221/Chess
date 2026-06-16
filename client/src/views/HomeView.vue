@@ -1,8 +1,19 @@
 <script setup lang="ts">
+import { onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useMatchmakingStore } from '@/stores/matchmaking';
 import Matchmaking from '@/components/Matchmaking.vue';
 
 const authStore = useAuthStore();
+const matchmakingStore = useMatchmakingStore();
+const router = useRouter();
+
+onMounted(() => {
+    if (matchmakingStore.isInGame && !matchmakingStore.gameOver) {
+        router.replace(`/game/${matchmakingStore.matchFound.gameId}`);
+    }
+});
 </script>
 
 <template>

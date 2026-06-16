@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Client } from '@stomp/stompjs';
 import { useAuthStore } from './auth';
 import router from '@/router';
@@ -10,17 +10,29 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
     const isConnected = ref(false);
     let connectResolvers: (() => void)[] = [];
     const isInQueue = ref(false);
-    const matchFound = ref<any>(null);
+    const matchFound = ref<any>(JSON.parse(localStorage.getItem('chess_match') || 'null'));
     const isInGame = computed(() => !!matchFound.value);
 
     // Active game state (for players)
     const lastMoveReceived = ref<any>(null);
-    const whiteTimeLeftMs = ref<number>(0);
-    const blackTimeLeftMs = ref<number>(0);
+    const whiteTimeLeftMs = ref<number>(matchFound.value?.timeControlSeconds * 1000 || 0);
+    const blackTimeLeftMs = ref<number>(matchFound.value?.timeControlSeconds * 1000 || 0);
     const currentTurn = ref<string>('w');
-    const gameOver = ref<{ winner: string; reason: string } | null>(null);
+    const gameOver = ref<{ winner: string; reason: string } | null>(
+        JSON.parse(localStorage.getItem('chess_game_over') || 'null')
+    );
 
-    // Spectator state
+    // Watch states and persist to localStorage
+    watch(matchFound, (val) => {
+        if (val) localStorage.setItem('chess_match', JSON.stringify(val));
+        else localStorage.removeItem('chess_match');
+    }, { deep: true });
+
+    watch(gameOver, (val) => {
+        if (val) localStorage.setItem('chess_game_over', JSON.stringify(val));
+        else localStorage.removeItem('chess_game_over');
+    }, { deep: true });
+
     const spectatorGame = ref<any>(null);
     const isSpectating = computed(() => !!spectatorGame.value && !isInGame.value);
 
