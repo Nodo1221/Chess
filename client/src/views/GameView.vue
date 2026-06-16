@@ -12,13 +12,10 @@ const route = useRoute();
 
 let timerInterval: number | null = null;
 
-onMounted(async () => {
+onMounted(() => {
     if (!matchmakingStore.isInGame || matchmakingStore.matchFound?.gameId !== route.params.id) {
-        const success = await matchmakingStore.fetchGame(route.params.id as string);
-        if (!success) {
-            router.push('/');
-            return;
-        }
+        router.push('/');
+        return;
     }
 
     timerInterval = window.setInterval(() => {

@@ -28,12 +28,18 @@ public class MatchmakingController {
     @MessageMapping("/queue.join.rated")
     public void joinRatedQueue(Principal principal, @Payload JoinQueueRequest request) {
         if (principal == null) return;
-        
+
         String playerId = principal.getName();
         String nickname = playerId;
-        
+
         matchmakingService.joinRatedQueue(playerId, nickname, request.timeControlSeconds());
     }
-    
+
+    @MessageMapping("/queue.leave")
+    public void leaveQueue(Principal principal) {
+        if (principal == null) return;
+        matchmakingService.leaveQueue(principal.getName());
+    }
+
     public record JoinQueueRequest(int timeControlSeconds) {}
 }

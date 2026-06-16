@@ -29,8 +29,8 @@ function quickPlay(seconds: number) {
     <div class="border p-4">
         <div v-if="matchmakingStore.isInQueue" class="text-center py-4">
             <div>Searching for opponent...</div>
-            <button 
-                @click="matchmakingStore.resetMatch"
+            <button
+                @click="matchmakingStore.leaveQueue"
                 class="mt-2 text-sm text-red-500 underline"
             >
                 Cancel Search

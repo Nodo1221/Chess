@@ -30,15 +30,11 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
             onConnect: () => {
                 isConnected.value = true;
                 console.log('DEBUG: Connected to WebSocket');
-                
-                client.subscribe('/topic/casual-matches', (message) => {
+
+                client.subscribe('/user/queue/matches', (message) => {
                     const match = JSON.parse(message.body);
                     console.log('DEBUG: Match Found Event Received', match);
                     handleMatchFound(match, client);
-                });
-
-                client.subscribe('/topic/rated-matches', (message) => {
-                    handleMatchFound(JSON.parse(message.body), client);
                 });
             },
             onDisconnect: () => {
@@ -53,34 +49,30 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
     }
 
     function handleMatchFound(match: any, activeClient: Client) {
-        if (match.whitePlayer.id === authStore.guestId || match.blackPlayer.id === authStore.guestId) {
-            matchFound.value = match;
-            isInQueue.value = false;
-            gameOver.value = null;
-            
-            // Initialize clocks based on time control
-            whiteTimeLeftMs.value = match.timeControlSeconds * 1000;
-            blackTimeLeftMs.value = match.timeControlSeconds * 1000;
-            currentTurn.value = 'w'; // White always starts
+        matchFound.value = match;
+        isInQueue.value = false;
+        gameOver.value = null;
 
-            console.log(`DEBUG: Subscribing to game topic: /topic/game/${match.gameId}`);
-            activeClient.subscribe(`/topic/game/${match.gameId}`, (message) => {
-                const data = JSON.parse(message.body);
-                console.log('DEBUG: Message Received from Topic', data);
-                
-                if (data.winner) {
-                    gameOver.value = data;
-                } else if (data.move) {
-                    // Update clocks from server truth
-                    whiteTimeLeftMs.value = data.whiteTimeLeftMs;
-                    blackTimeLeftMs.value = data.blackTimeLeftMs;
-                    currentTurn.value = data.currentTurn;
-                    lastMoveReceived.value = data; // Assign entire GameUpdate object
-                }
-            });
-            
-            router.push(`/game/${match.gameId}`);
-        }
+        whiteTimeLeftMs.value = match.timeControlSeconds * 1000;
+        blackTimeLeftMs.value = match.timeControlSeconds * 1000;
+        currentTurn.value = 'w';
+
+        console.log(`DEBUG: Subscribing to game topic: /topic/game/${match.gameId}`);
+        activeClient.subscribe(`/topic/game/${match.gameId}`, (message) => {
+            const data = JSON.parse(message.body);
+            console.log('DEBUG: Message Received from Topic', data);
+
+            if (data.winner) {
+                gameOver.value = data;
+            } else if (data.move) {
+                whiteTimeLeftMs.value = data.whiteTimeLeftMs;
+                blackTimeLeftMs.value = data.blackTimeLeftMs;
+                currentTurn.value = data.currentTurn;
+                lastMoveReceived.value = data;
+            }
+        });
+
+        router.push(`/game/${match.gameId}`);
     }
 
     function sendMove(gameId: string, move: any) {
@@ -102,9 +94,16 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
         gameOver.value = null;
     }
 
+    function leaveQueue() {
+        if (stompClient.value?.connected) {
+            stompClient.value.publish({ destination: '/app/queue.leave', body: '' });
+        }
+        isInQueue.value = false;
+    }
+
     function joinCasualQueue(timeControlSeconds: number = 180) {
         if (!stompClient.value?.connected || isInGame.value) return;
-        stompClient.value.publish({ 
+        stompClient.value.publish({
             destination: '/app/queue.join.casual',
             body: JSON.stringify({ timeControlSeconds })
         });
@@ -113,7 +112,7 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
 
     function joinRatedQueue(timeControlSeconds: number = 180) {
         if (!stompClient.value?.connected || isInGame.value) return;
-        stompClient.value.publish({ 
+        stompClient.value.publish({
             destination: '/app/queue.join.rated',
             body: JSON.stringify({ timeControlSeconds })
         });
@@ -131,6 +130,7 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
         currentTurn,
         gameOver,
         connect,
+        leaveQueue,
         joinCasualQueue,
         joinRatedQueue,
         sendMove,

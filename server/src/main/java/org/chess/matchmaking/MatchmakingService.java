@@ -27,34 +27,43 @@ public class MatchmakingService {
         Player player = new Player(playerId, nickname);
         var queue = casualQueues.computeIfAbsent(timeControlSeconds, k -> new ConcurrentLinkedQueue<>());
         queue.add(player);
-        tryMatch(queue, "/topic/casual-matches", timeControlSeconds);
+        tryMatch(queue, timeControlSeconds);
     }
 
     public void joinRatedQueue(String playerId, String nickname, int timeControlSeconds) {
         Player player = new Player(playerId, nickname);
         var queue = ratedQueues.computeIfAbsent(timeControlSeconds, k -> new ConcurrentLinkedQueue<>());
         queue.add(player);
-        tryMatch(queue, "/topic/rated-matches", timeControlSeconds);
+        tryMatch(queue, timeControlSeconds);
     }
 
-    private synchronized void tryMatch(ConcurrentLinkedQueue<Player> queue, String topic, int timeControlSeconds) {
+    public void leaveQueue(String playerId) {
+        casualQueues.values().forEach(q -> q.removeIf(p -> p.id().equals(playerId)));
+        ratedQueues.values().forEach(q -> q.removeIf(p -> p.id().equals(playerId)));
+    }
+
+    private synchronized void tryMatch(ConcurrentLinkedQueue<Player> queue, int timeControlSeconds) {
         while (queue.size() >= 2) {
             Player p1 = queue.poll();
             Player p2 = queue.poll();
-            if (p1 != null && p2 != null) {
-                String gameId = UUID.randomUUID().toString();
-                
-                MatchFoundResponse match;
-                if (Math.random() > 0.5) {
-                    match = new MatchFoundResponse(gameId, p1, p2, timeControlSeconds);
-                    gameService.startGame(gameId, p1.id(), p2.id(), timeControlSeconds);
-                } else {
-                    match = new MatchFoundResponse(gameId, p2, p1, timeControlSeconds);
-                    gameService.startGame(gameId, p2.id(), p1.id(), timeControlSeconds);
-                }
-                
-                messagingTemplate.convertAndSend(topic, match);
+            if (p1 == null || p2 == null) break;
+            if (p1.id().equals(p2.id())) {
+                queue.offer(p1); // put one back, can't match a player with themselves
+                break;
             }
+
+            String gameId = UUID.randomUUID().toString();
+            MatchFoundResponse match;
+            if (Math.random() > 0.5) {
+                match = new MatchFoundResponse(gameId, p1, p2, timeControlSeconds);
+                gameService.startGame(gameId, p1.id(), p2.id(), timeControlSeconds);
+            } else {
+                match = new MatchFoundResponse(gameId, p2, p1, timeControlSeconds);
+                gameService.startGame(gameId, p2.id(), p1.id(), timeControlSeconds);
+            }
+
+            messagingTemplate.convertAndSendToUser(p1.id(), "/queue/matches", match);
+            messagingTemplate.convertAndSendToUser(p2.id(), "/queue/matches", match);
         }
     }
 
