@@ -25,7 +25,7 @@ router.beforeEach((to, from) => {
     console.log('DEBUG Router: Navigating to', to.path, 'InGame:', matchmakingStore.isInGame);
     
     // If user is in an active game (not over), force them to stay on the game page
-    if (matchmakingStore.isInGame && !matchmakingStore.gameOver) {
+    if (matchmakingStore.isInGame) {
         const gameId = matchmakingStore.matchFound.gameId;
         console.log('DEBUG Router: Sticky game active. Redirecting to', gameId);
         

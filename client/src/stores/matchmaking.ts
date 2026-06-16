@@ -11,7 +11,7 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
     let connectResolvers: (() => void)[] = [];
     const isInQueue = ref(false);
     const matchFound = ref<any>(JSON.parse(localStorage.getItem('chess_match') || 'null'));
-    const isInGame = computed(() => !!matchFound.value);
+    const isInGame = computed(() => !!matchFound.value && !gameOver.value);
 
     // Active game state (for players)
     const lastMoveReceived = ref<any>(null);

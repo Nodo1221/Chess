@@ -264,9 +264,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
         <!-- Board & Players (Center) -->
         <div class="flex flex-col gap-2">
             <!-- Top Player -->
-            <div v-if="topPlayer" class="flex justify-between items-center text-sm font-bold h-8">
-                <span class="truncate max-w-[200px]">{{ topPlayer.nickname }} (1000)</span>
-                <span class="text-lg px-2">{{ formatTime(topPlayer.ms) }}</span>
+            <div v-if="topPlayer" class="flex justify-between items-center h-10">
+                <span class="text-base font-bold truncate max-w-[250px]">{{ topPlayer.nickname }} (1000)</span>
+                <span class="text-2xl font-bold bg-gray-100 px-3 py-0.5 rounded">{{ formatTime(topPlayer.ms) }}</span>
             </div>
 
             <div class="relative select-none shrink-0" ref="boardEl" :style="{ width: `${boardSize}px` }">
@@ -309,14 +309,14 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
             </div>
 
             <!-- Bottom Player -->
-            <div v-if="bottomPlayer" class="flex justify-between items-center text-sm font-bold h-8">
+            <div v-if="bottomPlayer" class="flex justify-between items-center h-10">
                 <div class="flex items-center gap-2">
-                    <span class="truncate max-w-[200px]">{{ bottomPlayer.nickname }} (1000)</span>
+                    <span class="text-base font-bold truncate max-w-[250px]">{{ bottomPlayer.nickname }} (1000)</span>
                     <span v-if="matchmakingStore.matchFound" class="text-[10px] text-gray-500 font-normal uppercase">
                         ({{ playerSide === 'w' ? 'White' : 'Black' }})
                     </span>
                 </div>
-                <span class="text-lg px-2">{{ formatTime(bottomPlayer.ms) }}</span>
+                <span class="text-2xl font-bold bg-gray-100 px-3 py-0.5 rounded">{{ formatTime(bottomPlayer.ms) }}</span>
             </div>
         </div>
     </div>

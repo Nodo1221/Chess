@@ -10,7 +10,7 @@ const matchmakingStore = useMatchmakingStore();
 const router = useRouter();
 
 onMounted(() => {
-    if (matchmakingStore.isInGame && !matchmakingStore.gameOver) {
+    if (matchmakingStore.isInGame) {
         router.replace(`/game/${matchmakingStore.matchFound.gameId}`);
     }
 });
