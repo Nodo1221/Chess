@@ -260,7 +260,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
             <!-- Top Player -->
             <div v-if="topPlayer" class="flex justify-between items-center text-sm font-bold h-8">
                 <span class="truncate max-w-[200px]">{{ topPlayer.nickname }} (1000)</span>
-                <span class="font-mono text-lg tabular-nums bg-gray-100 px-2 rounded">{{ formatTime(topPlayer.ms) }}</span>
+                <span class="text-lg px-2">{{ formatTime(topPlayer.ms) }}</span>
             </div>
 
             <div class="relative select-none shrink-0" ref="boardEl" :style="{ width: `${boardSize}px` }">
@@ -307,11 +307,11 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
                         ({{ playerSide === 'w' ? 'White' : 'Black' }})
                     </span>
                 </div>
-                <span class="font-mono text-lg tabular-nums bg-gray-100 px-2 rounded">{{ formatTime(bottomPlayer.ms) }}</span>
+                <span class="text-lg px-2">{{ formatTime(bottomPlayer.ms) }}</span>
             </div>
         </div>
 
-        <div class="font-mono text-sm w-32 max-h-[704px] overflow-y-auto shrink-0 border-l pl-4 self-stretch pt-10">
+        <div class="text-sm w-32 max-h-[704px] overflow-y-auto shrink-0 border-l pl-4 self-stretch pt-10">
             <div v-for="(_, i) in Math.ceil(gameHistory.length / 2)" :key="i" class="flex gap-2">
                 <span class="text-gray-500 w-5">{{ i + 1 }}.</span>
                 <span :class="{ 'bg-yellow-200 px-1': viewIndex === i * 2 + 1 }">{{ gameHistory[i * 2] }}</span>

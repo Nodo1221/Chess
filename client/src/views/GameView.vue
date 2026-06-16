@@ -91,48 +91,48 @@ const activeGame = computed(() => matchmakingStore.matchFound ?? matchmakingStor
                 <Board :initial-moves="matchmakingStore.spectatorGame?.moves" />
             </div>
 
-            <!-- Sidebar: chat -->
-            <div class="flex flex-col flex-1 min-w-[300px] self-stretch border rounded bg-gray-50 overflow-hidden">
-                <div class="bg-gray-100 px-3 py-2 text-xs font-bold uppercase tracking-wider border-b">
-                    Game Chat
-                </div>
-                
-                <!-- Chat Messages -->
-                <div class="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
-                    <div
-                        v-for="(msg, i) in matchmakingStore.chatMessages"
-                        :key="i"
-                        class="break-words"
-                    >
-                        <span class="font-bold text-blue-700">{{ msg.senderNickname }}:</span>
-                        <span class="ml-1 text-gray-800">{{ msg.content }}</span>
+            <!-- Sidebar -->
+            <div class="flex flex-col flex-1 min-w-[300px] self-stretch gap-4">
+                <!-- Chat -->
+                <div class="flex flex-col flex-1 border min-h-0 bg-white">
+                    <!-- Chat Messages -->
+                    <div class="flex-1 overflow-y-auto p-2 space-y-1 text-sm">
+                        <div
+                            v-for="(msg, i) in matchmakingStore.chatMessages"
+                            :key="i"
+                            class="break-words"
+                        >
+                            <span class="font-bold">{{ msg.senderNickname }}:</span>
+                            <span class="ml-1">{{ msg.content }}</span>
+                        </div>
+                        <div v-if="matchmakingStore.chatMessages.length === 0" class="text-gray-400 italic text-center py-4">
+                            No messages yet
+                        </div>
                     </div>
-                    <div v-if="matchmakingStore.chatMessages.length === 0" class="text-gray-400 italic text-center py-4">
-                        No messages yet
+
+                    <!-- Chat Input -->
+                    <div class="border-t flex">
+                        <input
+                            v-model="chatInput"
+                            @keydown.enter="sendChat"
+                            class="flex-1 px-2 py-1 text-xs outline-none"
+                            placeholder="Message..."
+                            maxlength="500"
+                        />
+                        <button 
+                            @click="sendChat" 
+                            class="px-3 text-xs border-l hover:bg-gray-50 transition-colors"
+                        >
+                            Send
+                        </button>
                     </div>
                 </div>
 
-                <!-- Chat Input -->
-                <div class="border-t bg-white flex">
-                    <input
-                        v-model="chatInput"
-                        @keydown.enter="sendChat"
-                        class="flex-1 px-3 py-1.5 text-xs outline-none"
-                        placeholder="Type a message..."
-                        maxlength="500"
-                    />
-                    <button 
-                        @click="sendChat" 
-                        class="px-4 text-xs font-semibold border-l hover:bg-gray-100 transition-colors"
-                    >
-                        Send
-                    </button>
-                </div>
-
-                <div class="p-2 border-t bg-white" v-if="matchmakingStore.isInGame">
+                <!-- Actions -->
+                <div v-if="matchmakingStore.isInGame">
                     <button
                         @click="matchmakingStore.resetMatch(); router.push('/')"
-                        class="w-full py-1 text-red-500 hover:bg-red-50 rounded text-xs transition-colors"
+                        class="text-red-500 hover:underline text-xs"
                     >
                         Resign / Leave Game
                     </button>
