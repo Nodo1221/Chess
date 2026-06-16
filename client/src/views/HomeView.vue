@@ -7,7 +7,7 @@ const authStore = useAuthStore();
 
 <template>
     <div class="p-4 max-w-xl mx-auto">
-        <h2 class="text-2xl font-bold mb-4">Chess</h2>
+        <h2 class="text-2xl font-bold mb-4">Quick pairing</h2>
         
         <div v-if="!authStore.isAuthenticated" class="border p-4 mb-4">
             <p class="mb-2">Not logged in.</p>

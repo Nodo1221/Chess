@@ -25,7 +25,7 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
 <template>
     <div class="min-h-screen font-sans bg-white text-black">
         <header class="p-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold cursor-pointer" @click="router.push('/')">🐴 Chess App</h1>
+            <h1 class="text-xl font-bold cursor-pointer" @click="router.push('/')">🐴 Chess</h1>
             
             <div class="flex gap-6 items-center">
                 <div v-if="authStore.isAuthenticated" class="flex gap-4 items-center">
