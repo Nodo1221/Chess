@@ -7,7 +7,7 @@ import { useAuthStore } from '@/stores/auth';
 const matchmakingStore = useMatchmakingStore();
 const authStore = useAuthStore();
 
-const props = defineProps<{ size?: number }>();
+const props = defineProps<{ size?: number; initialMoves?: any[] }>();
 const boardSize = ref(props.size ?? 704);
 
 function colour(square: number) {
@@ -195,7 +195,17 @@ function onKeyDown(e: KeyboardEvent) {
     if (e.key.toLowerCase() === 'f') { isFlipped.value = !isFlipped.value; }
 }
 
-onMounted(() => window.addEventListener('keydown', onKeyDown));
+onMounted(() => {
+    window.addEventListener('keydown', onKeyDown);
+    if (props.initialMoves?.length) {
+        for (const m of props.initialMoves) {
+            try { chess.move(m); } catch { break; }
+        }
+        gameHistory.value = [...chess.history()];
+        viewIndex.value = gameHistory.value.length;
+        syncBoard();
+    }
+});
 onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
 </script>
 

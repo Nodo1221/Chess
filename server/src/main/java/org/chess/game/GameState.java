@@ -6,7 +6,9 @@ import java.util.List;
 public class GameState {
     private final String gameId;
     private final String whitePlayerId;
+    private final String whiteNickname;
     private final String blackPlayerId;
+    private final String blackNickname;
     
     private long whiteTimeLeftMs;
     private long blackTimeLeftMs;
@@ -20,10 +22,13 @@ public class GameState {
     private final List<Object> moves = new ArrayList<>();
     private final int timeControlSeconds;
 
-    public GameState(String gameId, String whitePlayerId, String blackPlayerId, int timeControlSeconds) {
+    public GameState(String gameId, String whitePlayerId, String whiteNickname,
+                     String blackPlayerId, String blackNickname, int timeControlSeconds) {
         this.gameId = gameId;
         this.whitePlayerId = whitePlayerId;
+        this.whiteNickname = whiteNickname;
         this.blackPlayerId = blackPlayerId;
+        this.blackNickname = blackNickname;
         this.timeControlSeconds = timeControlSeconds;
         
         long timeMs = timeControlSeconds * 1000L;
@@ -95,7 +100,9 @@ public class GameState {
 
     public String getGameId() { return gameId; }
     public String getWhitePlayerId() { return whitePlayerId; }
+    public String getWhiteNickname() { return whiteNickname; }
     public String getBlackPlayerId() { return blackPlayerId; }
+    public String getBlackNickname() { return blackNickname; }
     public int getTimeControlSeconds() { return timeControlSeconds; }
     public List<Object> getMoves() { return moves; }
     

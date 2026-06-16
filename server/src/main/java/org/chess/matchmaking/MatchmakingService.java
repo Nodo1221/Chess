@@ -56,10 +56,10 @@ public class MatchmakingService {
             MatchFoundResponse match;
             if (Math.random() > 0.5) {
                 match = new MatchFoundResponse(gameId, p1, p2, timeControlSeconds);
-                gameService.startGame(gameId, p1.id(), p2.id(), timeControlSeconds);
+                gameService.startGame(gameId, p1.id(), p1.nickname(), p2.id(), p2.nickname(), timeControlSeconds);
             } else {
                 match = new MatchFoundResponse(gameId, p2, p1, timeControlSeconds);
-                gameService.startGame(gameId, p2.id(), p1.id(), timeControlSeconds);
+                gameService.startGame(gameId, p2.id(), p2.nickname(), p1.id(), p1.nickname(), timeControlSeconds);
             }
 
             messagingTemplate.convertAndSendToUser(p1.id(), "/queue/matches", match);

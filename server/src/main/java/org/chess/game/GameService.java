@@ -1,9 +1,12 @@
 package org.chess.game;
 
+import org.chess.persistence.GameEntity;
+import org.chess.persistence.GameRepository;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -12,14 +15,18 @@ public class GameService {
 
     private final Map<String, GameState> activeGames = new ConcurrentHashMap<>();
     private final SimpMessagingTemplate messagingTemplate;
+    private final GameRepository gameRepository;
 
-    public GameService(SimpMessagingTemplate messagingTemplate) {
+    public GameService(SimpMessagingTemplate messagingTemplate, GameRepository gameRepository) {
         this.messagingTemplate = messagingTemplate;
+        this.gameRepository = gameRepository;
     }
 
-    public void startGame(String gameId, String whiteId, String blackId, int timeControlSeconds) {
-        GameState game = new GameState(gameId, whiteId, blackId, timeControlSeconds);
+    public void startGame(String gameId, String whiteId, String whiteNickname,
+                          String blackId, String blackNickname, int timeControlSeconds) {
+        GameState game = new GameState(gameId, whiteId, whiteNickname, blackId, blackNickname, timeControlSeconds);
         activeGames.put(gameId, game);
+        gameRepository.save(new GameEntity(gameId, whiteId, whiteNickname, blackId, blackNickname, timeControlSeconds));
     }
 
     public GameState getGame(String gameId) {
@@ -31,13 +38,20 @@ public class GameService {
         if (game == null) return;
 
         boolean validMove = game.applyMove(playerId, moveData);
-        
+
         if (validMove) {
-            // Broadcast the move and the updated clocks
-            GameUpdate update = new GameUpdate(moveData, playerId, game.getWhiteTimeLeftMs(), game.getBlackTimeLeftMs(), game.getCurrentTurn());
+            gameRepository.findById(gameId).ifPresent(entity -> {
+                entity.setMoves(game.getMoves());
+                gameRepository.save(entity);
+            });
+            GameUpdate update = new GameUpdate(
+                    moveData, playerId,
+                    game.getWhiteTimeLeftMs(), game.getBlackTimeLeftMs(),
+                    game.getCurrentTurn()
+            );
             messagingTemplate.convertAndSend("/topic/game/" + gameId, update);
         } else if (game.isGameOver()) {
-            broadcastGameOver(game);
+            broadcastGameOver(game, "checkmate");
         }
     }
 
@@ -45,15 +59,25 @@ public class GameService {
     public void checkTimeouts() {
         for (GameState game : activeGames.values()) {
             if (game.checkTimeout()) {
-                broadcastGameOver(game);
+                broadcastGameOver(game, "timeout");
             }
         }
     }
 
-    private void broadcastGameOver(GameState game) {
+    private void broadcastGameOver(GameState game, String reason) {
         activeGames.remove(game.getGameId());
-        GameOverMessage msg = new GameOverMessage(game.getWinner(), "timeout");
-        messagingTemplate.convertAndSend("/topic/game/" + game.getGameId(), msg);
+        gameRepository.findById(game.getGameId()).ifPresent(entity -> {
+            entity.setStatus("finished");
+            entity.setResult(game.getWinner());
+            entity.setResultReason(reason);
+            entity.setEndedAt(Instant.now());
+            entity.setMoves(game.getMoves());
+            gameRepository.save(entity);
+        });
+        messagingTemplate.convertAndSend(
+                "/topic/game/" + game.getGameId(),
+                new GameOverMessage(game.getWinner(), reason)
+        );
     }
 
     public record GameUpdate(Object move, String playerId, long whiteTimeLeftMs, long blackTimeLeftMs, char currentTurn) {}

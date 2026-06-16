@@ -55,10 +55,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         if (jwtService.isTokenValid(token)) {
                             String username = jwtService.extractSubject(token);
                             String role = jwtService.extractClaim(token, claims -> claims.get("role", String.class));
-                            
+                            String nickname = jwtService.extractClaim(token, claims -> claims.get("nickname", String.class));
+
                             UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                                     username, null, List.of(new SimpleGrantedAuthority(role))
                             );
+                            auth.setDetails(nickname);
                             accessor.setUser(auth);
                         }
                     }

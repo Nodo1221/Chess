@@ -2,6 +2,7 @@ package org.chess.matchmaking;
 
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
@@ -18,27 +19,27 @@ public class MatchmakingController {
     @MessageMapping("/queue.join.casual")
     public void joinCasualQueue(Principal principal, @Payload JoinQueueRequest request) {
         if (principal == null) return;
-        
-        String playerId = principal.getName();
-        String nickname = playerId; 
-        
-        matchmakingService.joinCasualQueue(playerId, nickname, request.timeControlSeconds());
+        matchmakingService.joinCasualQueue(principal.getName(), nicknameOf(principal), request.timeControlSeconds());
     }
 
     @MessageMapping("/queue.join.rated")
     public void joinRatedQueue(Principal principal, @Payload JoinQueueRequest request) {
         if (principal == null) return;
-
-        String playerId = principal.getName();
-        String nickname = playerId;
-
-        matchmakingService.joinRatedQueue(playerId, nickname, request.timeControlSeconds());
+        matchmakingService.joinRatedQueue(principal.getName(), nicknameOf(principal), request.timeControlSeconds());
     }
 
     @MessageMapping("/queue.leave")
     public void leaveQueue(Principal principal) {
         if (principal == null) return;
         matchmakingService.leaveQueue(principal.getName());
+    }
+
+    private String nicknameOf(Principal principal) {
+        if (principal instanceof UsernamePasswordAuthenticationToken auth
+                && auth.getDetails() instanceof String nickname) {
+            return nickname;
+        }
+        return principal.getName();
     }
 
     public record JoinQueueRequest(int timeControlSeconds) {}
