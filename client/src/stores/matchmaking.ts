@@ -169,7 +169,11 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
     }
 
     function joinCasualQueue(timeControlSeconds: number = 180) {
-        if (!stompClient.value?.connected || isInGame.value) return;
+        if (!stompClient.value?.connected) return;
+        if (isInGame.value) {
+            if (gameOver.value) resetMatch();
+            else return;
+        }
         stompClient.value.publish({
             destination: '/app/queue.join.casual',
             body: JSON.stringify({ timeControlSeconds }),
@@ -178,7 +182,11 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
     }
 
     function joinRatedQueue(timeControlSeconds: number = 180) {
-        if (!stompClient.value?.connected || isInGame.value) return;
+        if (!stompClient.value?.connected) return;
+        if (isInGame.value) {
+            if (gameOver.value) resetMatch();
+            else return;
+        }
         stompClient.value.publish({
             destination: '/app/queue.join.rated',
             body: JSON.stringify({ timeControlSeconds }),

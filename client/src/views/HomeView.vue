@@ -10,8 +10,14 @@ const matchmakingStore = useMatchmakingStore();
 const router = useRouter();
 
 onMounted(() => {
-    if (matchmakingStore.isInGame && !matchmakingStore.gameOver) {
-        router.replace(`/game/${matchmakingStore.matchFound.gameId}`);
+    if (matchmakingStore.isInGame) {
+        if (matchmakingStore.gameOver) {
+            // If the game is already over, clean it up so we can search for a new one
+            matchmakingStore.resetMatch();
+        } else {
+            // If the game is still active, redirect back to it
+            router.replace(`/game/${matchmakingStore.matchFound.gameId}`);
+        }
     }
 });
 </script>
