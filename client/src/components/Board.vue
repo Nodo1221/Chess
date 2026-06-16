@@ -216,7 +216,8 @@ function onDragUp(e: PointerEvent) {
                 if (matchmakingStore.matchFound) {
                     matchmakingStore.sendMove(matchmakingStore.matchFound.gameId, {
                         move: moveData,
-                        playerId: authStore.guestId
+                        playerId: authStore.guestId,
+                        isCheckmate: chess.isCheckmate(),
                     });
                 }
             }

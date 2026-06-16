@@ -33,7 +33,7 @@ public class GameService {
         return activeGames.get(gameId);
     }
 
-    public void processMove(String gameId, String playerId, Object moveData) {
+    public void processMove(String gameId, String playerId, Object moveData, boolean isCheckmate) {
         GameState game = activeGames.get(gameId);
         if (game == null) return;
 
@@ -50,9 +50,31 @@ public class GameService {
                     game.getCurrentTurn()
             );
             messagingTemplate.convertAndSend("/topic/game/" + gameId, update);
+
+            if (isCheckmate) {
+                // Turn has already flipped to the loser's side after applyMove
+                String winner = game.getCurrentTurn() == 'b' ? "white" : "black";
+                game.declareWinner(winner);
+                broadcastGameOver(game, "checkmate");
+            }
         } else if (game.isGameOver()) {
-            broadcastGameOver(game, "checkmate");
+            broadcastGameOver(game, "timeout");
         }
+    }
+
+    public void resign(String gameId, String playerId) {
+        GameState game = activeGames.get(gameId);
+        if (game == null) return;
+        String winner;
+        if (playerId.equals(game.getWhitePlayerId())) {
+            winner = "black";
+        } else if (playerId.equals(game.getBlackPlayerId())) {
+            winner = "white";
+        } else {
+            return;
+        }
+        game.declareWinner(winner);
+        broadcastGameOver(game, "resignation");
     }
 
     @Scheduled(fixedRate = 500)

@@ -186,6 +186,14 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
         isInQueue.value = true;
     }
 
+    function resign(gameId: string) {
+        if (!stompClient.value?.connected) return;
+        stompClient.value.publish({
+            destination: `/app/game.resign/${gameId}`,
+            body: JSON.stringify({ playerId: authStore.guestId }),
+        });
+    }
+
     function resetMatch() {
         matchFound.value = null;
         spectatorGame.value = null;
@@ -215,6 +223,7 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
         joinAsSpectator,
         sendMove,
         sendChatMessage,
+        resign,
         resetMatch,
     };
 });

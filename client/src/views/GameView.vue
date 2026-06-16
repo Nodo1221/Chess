@@ -131,10 +131,18 @@ const activeGame = computed(() => matchmakingStore.matchFound ?? matchmakingStor
                 <!-- Actions -->
                 <div v-if="matchmakingStore.isInGame">
                     <button
-                        @click="matchmakingStore.resetMatch(); router.push('/')"
+                        @click="matchmakingStore.resign(gameId)"
                         class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-xs font-bold transition-colors w-full uppercase tracking-wider"
                     >
                         Resign
+                    </button>
+                </div>
+                <div v-else-if="matchmakingStore.gameOver && matchmakingStore.matchFound">
+                    <button
+                        @click="matchmakingStore.resetMatch(); router.push('/')"
+                        class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded text-xs font-bold transition-colors w-full uppercase tracking-wider"
+                    >
+                        Back to Home
                     </button>
                 </div>
             </div>

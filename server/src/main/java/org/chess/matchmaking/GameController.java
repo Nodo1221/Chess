@@ -19,8 +19,14 @@ public class GameController {
 
     @MessageMapping("/game/move/{gameId}")
     public void handleMove(@DestinationVariable String gameId, @Payload MoveMessage move, Principal principal) {
-        gameService.processMove(gameId, move.playerId(), move.move());
+        gameService.processMove(gameId, move.playerId(), move.move(), move.isCheckmate());
     }
 
-    public record MoveMessage(Object move, String playerId) {}
+    @MessageMapping("/game/resign/{gameId}")
+    public void handleResign(@DestinationVariable String gameId, @Payload ResignMessage msg) {
+        gameService.resign(gameId, msg.playerId());
+    }
+
+    public record MoveMessage(Object move, String playerId, boolean isCheckmate) {}
+    public record ResignMessage(String playerId) {}
 }

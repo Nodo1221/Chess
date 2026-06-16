@@ -98,6 +98,11 @@ public class GameState {
         return false;
     }
 
+    public synchronized void declareWinner(String winner) {
+        this.isGameOver = true;
+        this.winner = winner;
+    }
+
     public String getGameId() { return gameId; }
     public String getWhitePlayerId() { return whitePlayerId; }
     public String getWhiteNickname() { return whiteNickname; }
