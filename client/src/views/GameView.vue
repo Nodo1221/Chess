@@ -94,9 +94,9 @@ const activeGame = computed(() => matchmakingStore.matchFound ?? matchmakingStor
             <!-- Sidebar -->
             <div class="flex flex-col flex-1 min-w-[300px] self-stretch gap-4">
                 <!-- Chat -->
-                <div class="flex flex-col flex-1 border min-h-0 bg-white">
+                <div class="flex flex-col flex-1 min-h-0 bg-white">
                     <!-- Chat Messages -->
-                    <div class="flex-1 overflow-y-auto p-2 space-y-1 text-sm">
+                    <div class="flex-1 overflow-y-auto p-2 space-y-1 text-sm border-b">
                         <div
                             v-for="(msg, i) in matchmakingStore.chatMessages"
                             :key="i"
@@ -111,17 +111,17 @@ const activeGame = computed(() => matchmakingStore.matchFound ?? matchmakingStor
                     </div>
 
                     <!-- Chat Input -->
-                    <div class="border-t flex">
+                    <div class="flex">
                         <input
                             v-model="chatInput"
                             @keydown.enter="sendChat"
-                            class="flex-1 px-2 py-1 text-xs outline-none"
+                            class="flex-1 px-2 py-2 text-xs outline-none"
                             placeholder="Message..."
                             maxlength="500"
                         />
                         <button 
                             @click="sendChat" 
-                            class="px-3 text-xs border-l hover:bg-gray-50 transition-colors"
+                            class="px-3 text-xs hover:bg-gray-50 transition-colors"
                         >
                             Send
                         </button>
@@ -132,9 +132,9 @@ const activeGame = computed(() => matchmakingStore.matchFound ?? matchmakingStor
                 <div v-if="matchmakingStore.isInGame">
                     <button
                         @click="matchmakingStore.resetMatch(); router.push('/')"
-                        class="text-red-500 hover:underline text-xs"
+                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-xs font-bold transition-colors w-full uppercase tracking-wider"
                     >
-                        Resign / Leave Game
+                        Resign
                     </button>
                 </div>
             </div>

@@ -310,7 +310,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
             </div>
         </div>
 
-        <div class="text-sm w-32 max-h-[704px] overflow-y-auto shrink-0 border-l pl-4 self-stretch pt-10">
+        <div class="text-sm w-32 max-h-[704px] overflow-y-auto shrink-0 pl-4 self-stretch pt-10">
             <div v-for="(_, i) in Math.ceil(gameHistory.length / 2)" :key="i" class="flex gap-2">
                 <span class="text-gray-500 w-5">{{ i + 1 }}.</span>
                 <span :class="{ 'bg-yellow-200 px-1': viewIndex === i * 2 + 1 }">{{ gameHistory[i * 2] }}</span>
