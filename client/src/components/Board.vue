@@ -94,6 +94,50 @@ function pieceAsset(square: number): string | null {
 
 // ── drag & drop ───────────────────────────────────────────────────────────────
 
+function formatTime(ms: number) {
+    const totalSeconds = Math.ceil(ms / 1000);
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+const whiteMs = computed(() => matchmakingStore.isInGame
+    ? matchmakingStore.whiteTimeLeftMs
+    : (matchmakingStore.spectatorGame?.whiteTimeLeftMs ?? 0));
+const blackMs = computed(() => matchmakingStore.isInGame
+    ? matchmakingStore.blackTimeLeftMs
+    : (matchmakingStore.spectatorGame?.blackTimeLeftMs ?? 0));
+
+const topPlayer = computed(() => {
+    const game = matchmakingStore.matchFound ?? matchmakingStore.spectatorGame;
+    if (!game) return null;
+    if (isFlipped.value) {
+        return {
+            nickname: game.whitePlayer?.nickname ?? game.whiteNickname ?? 'White',
+            ms: whiteMs.value
+        };
+    }
+    return {
+        nickname: game.blackPlayer?.nickname ?? game.blackNickname ?? 'Black',
+        ms: blackMs.value
+    };
+});
+
+const bottomPlayer = computed(() => {
+    const game = matchmakingStore.matchFound ?? matchmakingStore.spectatorGame;
+    if (!game) return null;
+    if (isFlipped.value) {
+        return {
+            nickname: game.blackPlayer?.nickname ?? game.blackNickname ?? 'Black',
+            ms: blackMs.value
+        };
+    }
+    return {
+        nickname: game.whitePlayer?.nickname ?? game.whiteNickname ?? 'White',
+        ms: whiteMs.value
+    };
+});
+
 const dragging = ref<{ fromSquare: number; asset: string; x: number; y: number } | null>(null);
 
 function squareToNotation(square: number): string {
@@ -190,6 +234,7 @@ function onDragUp(e: PointerEvent) {
 }
 
 function onKeyDown(e: KeyboardEvent) {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
     if (e.key === 'ArrowLeft')  { viewIndex.value = Math.max(0, viewIndex.value - 1); syncBoard(); }
     if (e.key === 'ArrowRight') { viewIndex.value = Math.min(gameHistory.value.length, viewIndex.value + 1); syncBoard(); }
     if (e.key.toLowerCase() === 'f') { isFlipped.value = !isFlipped.value; }
@@ -210,13 +255,14 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
 </script>
 
 <template>
-    <div class="flex flex-col gap-2">
-        <div v-if="matchmakingStore.matchFound" class="text-sm">
-            You are: {{ playerSide === 'w' ? 'WHITE' : 'BLACK' }}
-            <span v-if="isSelfPlay"> (WARNING: SELF-PLAY DETECTED)</span>
-        </div>
+    <div class="flex gap-4 items-start">
+        <div class="flex flex-col gap-2">
+            <!-- Top Player -->
+            <div v-if="topPlayer" class="flex justify-between items-center text-sm font-bold h-8">
+                <span class="truncate max-w-[200px]">{{ topPlayer.nickname }} (1000)</span>
+                <span class="font-mono text-lg tabular-nums bg-gray-100 px-2 rounded">{{ formatTime(topPlayer.ms) }}</span>
+            </div>
 
-        <div class="flex gap-4 items-start">
             <div class="relative select-none shrink-0" ref="boardEl" :style="{ width: `${boardSize}px` }">
                 <div class="grid grid-cols-8 border-2 border-gray-800" style="aspect-ratio: 1 / 1">
                     <div
@@ -228,7 +274,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
                         <img
                             v-if="pieceAsset(isFlipped ? 65 - i : i)"
                             :src="pieceAsset(isFlipped ? 65 - i : i)!"
-                            class="w-full h-full"
+                            class="w-full h-full cursor-grab"
                             :class="{ 'opacity-0': dragging?.fromSquare === (isFlipped ? 65 - i : i) }"
                             draggable="false"
                             @pointerdown="(e) => onPiecePointerDown(e, isFlipped ? 65 - i : i)"
@@ -253,12 +299,23 @@ onUnmounted(() => window.removeEventListener('keydown', onKeyDown));
                 </Teleport>
             </div>
 
-            <div class="font-mono text-sm w-32 max-h-96 overflow-y-auto shrink-0 border-l pl-4">
-                <div v-for="(_, i) in Math.ceil(gameHistory.length / 2)" :key="i" class="flex gap-2">
-                    <span class="text-gray-500 w-5">{{ i + 1 }}.</span>
-                    <span :class="{ 'bg-yellow-200': viewIndex === i * 2 + 1 }">{{ gameHistory[i * 2] }}</span>
-                    <span :class="{ 'bg-yellow-200': viewIndex === i * 2 + 2 }">{{ gameHistory[i * 2 + 1] ?? '' }}</span>
+            <!-- Bottom Player -->
+            <div v-if="bottomPlayer" class="flex justify-between items-center text-sm font-bold h-8">
+                <div class="flex items-center gap-2">
+                    <span class="truncate max-w-[200px]">{{ bottomPlayer.nickname }} (1000)</span>
+                    <span v-if="matchmakingStore.matchFound" class="text-[10px] text-gray-500 font-normal uppercase">
+                        ({{ playerSide === 'w' ? 'White' : 'Black' }})
+                    </span>
                 </div>
+                <span class="font-mono text-lg tabular-nums bg-gray-100 px-2 rounded">{{ formatTime(bottomPlayer.ms) }}</span>
+            </div>
+        </div>
+
+        <div class="font-mono text-sm w-32 max-h-[704px] overflow-y-auto shrink-0 border-l pl-4 self-stretch pt-10">
+            <div v-for="(_, i) in Math.ceil(gameHistory.length / 2)" :key="i" class="flex gap-2">
+                <span class="text-gray-500 w-5">{{ i + 1 }}.</span>
+                <span :class="{ 'bg-yellow-200 px-1': viewIndex === i * 2 + 1 }">{{ gameHistory[i * 2] }}</span>
+                <span :class="{ 'bg-yellow-200 px-1': viewIndex === i * 2 + 2 }">{{ gameHistory[i * 2 + 1] ?? '' }}</span>
             </div>
         </div>
     </div>
