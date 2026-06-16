@@ -10,7 +10,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     async function loginAsGuest() {
         try {
-            const response = await fetch('http://localhost:8080/api/auth/guest', {
+            const response = await fetch('/api/auth/guest', {
                 method: 'POST',
             });
             if (!response.ok) throw new Error('Failed to login as guest');

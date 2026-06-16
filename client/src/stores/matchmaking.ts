@@ -49,7 +49,7 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
         return new Promise((resolve) => {
             connectResolvers.push(resolve);
             const client = new Client({
-                brokerURL: 'ws://localhost:8080/ws',
+                brokerURL: `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`,
                 connectHeaders: {
                     Authorization: `Bearer ${authStore.token}`,
                 },
@@ -128,7 +128,7 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
     }
 
     async function joinAsSpectator(gameId: string): Promise<boolean> {
-        const resp = await fetch(`http://localhost:8080/api/game/${gameId}`);
+        const resp = await fetch(`/api/game/${gameId}`);
         if (!resp.ok) return false;
 
         const game = await resp.json();
@@ -189,7 +189,7 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
     function resign(gameId: string) {
         if (!stompClient.value?.connected) return;
         stompClient.value.publish({
-            destination: `/app/game.resign/${gameId}`,
+            destination: `/app/game/resign/${gameId}`,
             body: JSON.stringify({ playerId: authStore.guestId }),
         });
     }

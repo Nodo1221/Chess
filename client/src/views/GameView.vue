@@ -78,8 +78,7 @@ const activeGame = computed(() => matchmakingStore.matchFound ?? matchmakingStor
             Spectating
         </div>
 
-        <div v-if="matchmakingStore.gameOver || activeGame?.isGameOver" class="text-sm">
-            <span class="font-bold">Game Over!</span>
+        <div v-if="matchmakingStore.gameOver || activeGame?.isGameOver" class="text-lgls text-center font-bold">
             {{
                 (matchmakingStore.gameOver?.winner ?? activeGame?.winner ?? '?').toUpperCase()
             }} won by {{ matchmakingStore.gameOver?.reason ?? activeGame?.resultReason ?? '?' }}
