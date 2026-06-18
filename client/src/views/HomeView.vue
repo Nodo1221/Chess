@@ -9,9 +9,19 @@ const authStore = useAuthStore();
 const matchmakingStore = useMatchmakingStore();
 const router = useRouter();
 
-onMounted(() => {
+onMounted(async () => {
     if (matchmakingStore.isInGame) {
-        router.replace(`/game/${matchmakingStore.matchFound.gameId}`);
+        const gameId = matchmakingStore.matchFound.gameId;
+        const resp = await fetch(`/api/game/${gameId}`);
+        if (resp.ok) {
+            const game = await resp.json();
+            if (game.status === 'active') {
+                router.replace(`/game/${gameId}`);
+                return;
+            }
+        }
+        // Game no longer exists or is finished — stale localStorage
+        matchmakingStore.resetMatch();
     }
 });
 </script>

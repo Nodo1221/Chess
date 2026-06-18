@@ -20,24 +20,32 @@ const router = createRouter({
     ],
 });
 
-router.beforeEach((to, from) => {
+router.beforeEach(async (to) => {
     const matchmakingStore = useMatchmakingStore();
-    console.log('DEBUG Router: Navigating to', to.path, 'InGame:', matchmakingStore.isInGame);
-    
-    // If user is in an active game (not over), force them to stay on the game page
+
     if (matchmakingStore.isInGame) {
         const gameId = matchmakingStore.matchFound.gameId;
-        console.log('DEBUG Router: Sticky game active. Redirecting to', gameId);
-        
-        // Don't redirect if we're already going to that specific game page
+
+        // Already heading to the right game — let it through
         if (to.name === 'game' && to.params.id === gameId) {
             return true;
         }
-        
-        // Otherwise, force back to the game
-        return { name: 'game', params: { id: gameId } };
+
+        // Verify the game still exists before forcing a redirect
+        try {
+            const resp = await fetch(`/api/game/${gameId}`);
+            if (resp.ok) {
+                const game = await resp.json();
+                if (game.status === 'active') {
+                    return { name: 'game', params: { id: gameId } };
+                }
+            }
+        } catch { /* network error — fall through */ }
+
+        // Game gone or finished — clear stale state and allow navigation
+        matchmakingStore.resetMatch();
     }
-    
+
     return true;
 });
 

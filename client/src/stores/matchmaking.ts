@@ -39,11 +39,15 @@ export const useMatchmakingStore = defineStore('matchmaking', () => {
     // Chat (shared by players and spectators)
     const chatMessages = ref<{ senderId: string; senderNickname: string; content: string; sentAt: string }[]>([]);
 
-    function connect(): Promise<void> {
-        if (stompClient.value?.connected) return Promise.resolve();
+    async function connect(): Promise<void> {
+        if (stompClient.value?.connected) return;
         // Already connecting — queue up behind the in-flight connection
         if (stompClient.value) {
             return new Promise(resolve => connectResolvers.push(resolve));
+        }
+
+        if (authStore.isTokenExpired()) {
+            await authStore.loginAsGuest();
         }
 
         return new Promise((resolve) => {

@@ -8,6 +8,16 @@ export const useAuthStore = defineStore('auth', () => {
 
     const isAuthenticated = computed(() => !!token.value);
 
+    function isTokenExpired(): boolean {
+        if (!token.value) return true;
+        try {
+            const payload = JSON.parse(atob(token.value.split('.')[1]));
+            return payload.exp * 1000 < Date.now();
+        } catch {
+            return true;
+        }
+    }
+
     async function loginAsGuest() {
         try {
             const response = await fetch('/api/auth/guest', {
@@ -44,6 +54,7 @@ export const useAuthStore = defineStore('auth', () => {
         nickname,
         guestId,
         isAuthenticated,
+        isTokenExpired,
         loginAsGuest,
         logout,
     };
