@@ -35,14 +35,12 @@ public class GameState {
         this.whiteTimeLeftMs = timeMs;
         this.blackTimeLeftMs = timeMs;
         
-        // Timer starts when the game is created (or on first move, but let's start it immediately for simplicity)
         this.lastMoveTimeMs = System.currentTimeMillis();
     }
 
     public synchronized boolean applyMove(String playerId, Object moveData) {
         if (isGameOver) return false;
 
-        // Check turn
         if (currentTurn == 'w' && !playerId.equals(whitePlayerId)) return false;
         if (currentTurn == 'b' && !playerId.equals(blackPlayerId)) return false;
 

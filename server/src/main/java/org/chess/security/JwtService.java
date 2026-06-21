@@ -14,9 +14,8 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    // In a real app, this should be in application.yml
     private static final String SECRET = "your-very-secure-and-very-long-secret-key-that-is-at-least-256-bits";
-    private static final long EXPIRATION_TIME = 86400000; // 24 hours
+    private static final long EXPIRATION_TIME = 86400000;
 
     private final SecretKey key = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
 

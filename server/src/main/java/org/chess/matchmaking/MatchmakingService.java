@@ -48,7 +48,7 @@ public class MatchmakingService {
             Player p2 = queue.poll();
             if (p1 == null || p2 == null) break;
             if (p1.id().equals(p2.id())) {
-                queue.offer(p1); // put one back, can't match a player with themselves
+                queue.offer(p1);
                 break;
             }
 

@@ -47,8 +47,6 @@ public class GameEntity {
     @Column(name = "ended_at")
     private Instant endedAt;
 
-    // --- future: add nullable player_uuid FK columns here for rated accounts ---
-
     public GameEntity() {}
 
     public GameEntity(String id, String whitePlayerId, String whiteNickname,

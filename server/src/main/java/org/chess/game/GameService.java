@@ -52,7 +52,6 @@ public class GameService {
             messagingTemplate.convertAndSend("/topic/game/" + gameId, update);
 
             if (isCheckmate) {
-                // Turn has already flipped to the loser's side after applyMove
                 String winner = game.getCurrentTurn() == 'b' ? "white" : "black";
                 game.declareWinner(winner);
                 broadcastGameOver(game, "checkmate");
